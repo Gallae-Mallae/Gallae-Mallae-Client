@@ -1,0 +1,15 @@
+:root {
+    /* Header 색상 */
+    --color-white: #ffffff;
+    --color-gray-light: #e5e7eb;
+    --color-primary-dark: #1f2937;
+    
+    /* 간격 */
+    --spacing-header-padding: 16px 24px;
+
+    /* 폰트 크기 */
+    --font-size-logo: 1.25rem;
+
+    /* 그림자 */
+    --shadow-default: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
