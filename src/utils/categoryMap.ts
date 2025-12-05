@@ -1,0 +1,24 @@
+export function getCategoryVarName(code: number): string {
+  switch (String(code)) {
+    case "12":
+      return "ATTRACTION"; // 관광지
+    case "14":
+      return "CULTURE"; // 문화시설
+    case "15":
+      return "FESTIVAL"; // 축제/공연/행사
+    case "25":
+      return "COURSE"; // 여행코스
+    case "28":
+      return "LEPORTS"; // 레포츠
+    case "32":
+      return "LODGE"; // 숙박
+    case "38":
+      return "SHOPPING"; // 쇼핑
+    case "39":
+      return "FOOD"; // 식당
+    case "40":
+      return "CAFE"; // 카페
+    default:
+      return "default";
+  }
+}
