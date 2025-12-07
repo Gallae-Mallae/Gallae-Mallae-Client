@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 const HomeView = () => import('@/views/Home.vue');
-const PlanView = () => import('@/views/Plan.vue'); 
-const SearchView = () => import('@/views/Search.vue');
+const PlanView = () => import('@/views/plan/Plan.vue'); 
+const SearchView = () => import('@/views/search/Search.vue');
 
 const routes: Array<RouteRecordRaw> = [
     {

@@ -1,0 +1,15 @@
+:root {
+    --category-tag-color-text: var(--color-white);
+    --category-tag-bg-default: var(--color-gray-light);
+
+    --category-tag-bg-FOOD: #F7786B;
+    --category-tag-bg-CAFE: #8BD1AA;
+    --category-tag-bg-ATTRACTION: #A9C9FF;
+    --category-tag-bg-CULTURE: #87CEEB;
+    --category-tag-bg-FESTIVAL: #FFB347;
+    --category-tag-bg-COURSE: #77DD77;
+    --category-tag-bg-LEPORTS: #4682B4;
+    --category-tag-bg-LODGE: #E0B0FF;
+    --category-tag-bg-SHOPPING: #FADA5E;
+    --category-tag-bg-ETC: #BDBDBD;
+}

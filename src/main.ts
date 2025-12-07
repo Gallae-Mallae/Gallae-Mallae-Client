@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import '@/style.css'
-import '@/assets/values/_variables.css'
+import '@/assets/styles/_global.css'
+import '@/assets/styles/_category.css';
 import App from '@/App.vue'
 import router from '@/router/index';
 
