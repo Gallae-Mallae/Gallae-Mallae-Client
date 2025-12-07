@@ -7,5 +7,7 @@
     "SEARCH_PLACE": "검색 결과",
     "SEARCH_WAITING": "장소를 불러오는 중...",
     "SEARCH_FAILURE": "",
-    "SEARCH_SUCCESS": ""
+    "SEARCH_SUCCESS": "",
+
+    "ADD_PLACE_FOLDER": "새 폴더 추가"
 }
