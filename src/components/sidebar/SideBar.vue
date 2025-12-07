@@ -41,7 +41,6 @@ const activeTab = ref<'search' | 'my'>('search');
   flex-direction: column;
 }
 
-/* --- 탭 영역 스타일 --- */
 .sidebar-tabs {
   display: flex;
   border-bottom: 1px solid var(--color-gray-light);
@@ -58,7 +57,7 @@ const activeTab = ref<'search' | 'my'>('search');
   color: var(--color-gray-medium);
   transition: all 0.2s;
   
-  /* 비활성화된 탭 하단 바 역할 (높이유지) */
+  /* 비활성화된 탭의 하단 바 (높이유지) */
   border-bottom: 3px solid transparent; 
 }
 
@@ -69,13 +68,16 @@ const activeTab = ref<'search' | 'my'>('search');
 .tab-button.active {
   color: var(--color-primary-dark);
   font-weight: 700;
+
   /* 활성화된 탭의 하단 바 */
   border-bottom: 3px solid var(--color-primary-dark); 
 }
 
-/* --- 콘텐츠 영역 --- */
 .tab-content {
   flex-grow: 1;
-  overflow-y: hidden; /* SideBar가 전체 스크롤을 담당합니다. */
+  /* 스크롤바 */
+  overflow-y: auto;
+  height: 0;
 }
+
 </style>

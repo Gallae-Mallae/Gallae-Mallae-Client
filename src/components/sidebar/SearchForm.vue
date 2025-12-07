@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import Dropdown from './Dropdown.vue';
+import Dropdown from '@/components/sidebar/Dropdown.vue';
 
 // 타입과 값의 import 분리 => TypeScript 오류 방지
 import { sidos, guguns } from '@/assets/datas/address';

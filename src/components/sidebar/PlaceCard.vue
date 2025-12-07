@@ -1,10 +1,10 @@
 <template>
-    <div class="place-block">
-        <div class="block-image">
+    <div class="place-card">
+        <div class="card-image">
             <img :src="place.imageUrl" :alt="place.title" loading="lazy" />
         </div>
 
-        <div class="block-info">
+        <div class="card-info">
             <h3 class="place-title">{{ place.title }}</h3>
 
             <p class="place-address">
@@ -14,17 +14,17 @@
 
             <div class="place-meta">
                 <span class="meta-item like-count">
-                    <img src="@/assets/icons/ic_heart.png" alt="좋아요" class="icon-small icon-red" />
+                    <img src="@/assets/icons/ic_heart.png" alt="좋아요" class="icon-small" :class="{'icon-red': place.isLiked}" />
                     {{ place.likes }}
                 </span>
 
-                <span class="meta-item bookmark-toggle" @click.stop="markPlace">
-                    <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small" />
-                </span>
+     <span class="meta-item bookmark-toggle" @click.stop="emit('mark', place.id)">
+          <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small" :class="{'icon-marked': place.isMarked}" />
+        </span>
 
-                <span class="meta-item share-action" @click.stop="sharePlace">
-                    <img src="@/assets/icons/ic_share.png" alt="공유" class="icon-small" />
-                </span>
+        <span class="meta-item share-action" @click.stop="emit('share', place.id)">
+          <img src="@/assets/icons/ic_share.png" alt="공유" class="icon-small" />
+        </span>
             </div>
         </div>
 
@@ -36,12 +36,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { PlaceBlockData } from '@/types/place';
+import type { PlaceCardData } from '@/types/place';
 import { getCategoryVarName } from '@/utils/categoryMap';
+
+const emit = defineEmits(['mark', 'share', 'click'])
 
 // Props 정의
 const props = defineProps<{
-    place: PlaceBlockData
+    place: PlaceCardData
 }>();
 
 // computed 속성을 사용하여 카테고리 코드에 맞는 변수 이름을 계산
@@ -56,43 +58,25 @@ const tagInlineStyle = computed(() => {
     };
 });
 
-// 상호작용 함수
-const markPlace = () => {
-    // 북마크 API 호출 로직 추가
-    console.log(`장소 ${props.place.id} 북마크 토글`);
-};
-
-const sharePlace = () => {
-    // 공유 기능 로직 추가
-    console.log(`장소 ${props.place.id} 공유`);
-};
 </script>
 
 <style>
-.place-block {
+.place-card {
     display: flex;
     position: relative;
-    padding: 12px;
+    padding: 14px;
     cursor: pointer;
     background-color: var(--color-white);
     transition: background-color 0.2s;
-    border-bottom: 1px solid var(--color-gray-light);
 }
 
-.place-block:hover {
+.place-card:hover {
     background-color: var(--color-gray-lightest);
 }
 
-/* 마지막 항목에는 구분선 제거 */
-.place-block:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-/* --- 이미지 영역 --- */
-.block-image img {
-    width: 70px;
-    height: 70px;
+.card-image img {
+    width: 80px;
+    height: 80px;
     object-fit: cover;
     border-radius: 4px;
     margin-right: 12px;
@@ -100,8 +84,7 @@ const sharePlace = () => {
     user-select: none;
 }
 
-/* --- 정보 영역 --- */
-.block-info {
+.card-info {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -132,7 +115,6 @@ const sharePlace = () => {
     margin-right: 4px;
 }
 
-/* --- 메타 (아이콘) 영역 --- */
 .place-meta {
     display: flex;
     font-size: var(--font-size-like);
@@ -142,7 +124,7 @@ const sharePlace = () => {
 .meta-item {
     display: flex;
     align-items: center;
-    margin-right: 12px;
+    margin-right: 8px;
     cursor: pointer;
 }
 
@@ -150,12 +132,15 @@ const sharePlace = () => {
     margin-right: 4px;
 }
 
-/* 좋아요는 붉은색으로 강조 */
+.place-address img, 
+.meta-item img {
+    margin-right: 4px;
+}
+
 .like-count {
     color: var(--color-red-primary);
 }
 
-/* --- 카테고리 태그 영역 --- */
 .category-tag {
     position: absolute;
     top: 12px;
@@ -168,7 +153,6 @@ const sharePlace = () => {
     /* 인라인 스타일로 주입된 --tag-bg 사용, 없다면 --category-tag-bg-default 사용 */
     background-color: var(--tag-bg, var(--category-tag-bg-default));
 
-    /* 전역 변수 참조 */
     color: var(--category-tag-color-text);
     user-select: none;
 }

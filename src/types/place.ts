@@ -1,4 +1,4 @@
-export interface PlaceBlockData {
+export interface PlaceCardData {
     id: string;
     imageUrl: string;
     title: string;

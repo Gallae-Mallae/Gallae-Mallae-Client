@@ -1,4 +1,11 @@
 {
     "TAB_SEARCH": "검색창",
-    "TAB_MY": "MY"
+    "TAB_MY": "MY",
+
+    "RECOMMEND_PLACE": "추천 장소",
+
+    "SEARCH_PLACE": "검색 결과",
+    "SEARCH_WAITING": "장소를 불러오는 중...",
+    "SEARCH_FAILURE": "",
+    "SEARCH_SUCCESS": ""
 }

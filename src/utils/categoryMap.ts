@@ -22,3 +22,28 @@ export function getCategoryVarName(code: number): string {
       return "default";
   }
 }
+
+export function getCategoryDisplayName(code: number): string {
+  switch (String(code)) {
+    case "12":
+      return "관광지";
+    case "14":
+      return "문화시설";
+    case "15":
+      return "축제/공연/행사";
+    case "25":
+      return "여행코스";
+    case "28":
+      return "레포츠";
+    case "32":
+      return "숙박";
+    case "38":
+      return "쇼핑";
+    case "39":
+      return "식당";
+    case "40":
+      return "카페";
+    default:
+      return "기타";
+  }
+}
