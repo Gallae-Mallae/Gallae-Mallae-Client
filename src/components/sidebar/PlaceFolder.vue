@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 
-import { computed, defineProps, defineEmits } from 'vue';
+import { computed } from 'vue';
 import type { PlaceFolderDTO } from '@/types/placefolder';
 
 const props = defineProps<{

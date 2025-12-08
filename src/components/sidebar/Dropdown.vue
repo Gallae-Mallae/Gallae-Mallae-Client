@@ -19,7 +19,6 @@
 <script setup lang="ts">
 // defineProps : 컴포넌트가 부모로부터 받을 데이터 정의
 // defineEmits : 컴포넌트가 부모에게 보낼 이벤트 정의
-import { defineProps, defineEmits } from 'vue';
 
 defineProps<{
     modelValue: string; // 현재 드롭다운에 선택된 값

@@ -16,7 +16,6 @@
 
 <script setup lang="ts">
 
-import { defineProps, defineEmits } from 'vue';
 import PlaceFolder from '@/components/sidebar/PlaceFolder.vue';
 import type { PlaceFolderDTO } from '@/types/placefolder';
 

@@ -35,7 +35,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue';
 import strings from '@/assets/values/strings.sidebar.json';
 import SearchResult from '@/components/sidebar/SearchResult.vue'; 
 import type { PlaceCardData } from '@/types/place';
