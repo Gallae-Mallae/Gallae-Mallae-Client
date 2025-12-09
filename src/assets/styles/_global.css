@@ -1,5 +1,5 @@
 :root {
-    /* Header */
+    /* --- Header --- */
     /* Header 색상 */
     --color-white: #ffffff;
     --color-gray-light: #e5e7eb;
@@ -14,7 +14,8 @@
     /* 그림자 */
     --shadow-default: 0 2px 4px rgba(0, 0, 0, 0.05);
 
-    /* PlaceBlock */
+
+    /* --- PlaceBlock --- */
     /* PlaceBlock 색상 */
     --color-gray-lightest: #f8f8f8;
     --color-gray-dark: #4b5563;
@@ -27,4 +28,9 @@
     --font-size-address: 0.8rem;
     --font-size-like: 0.7rem;
     --font-size-category: 0.7rem;
+
+
+    /* --- LoginModal --- */
+    /* LoginModal 색상 */
+    --color-kakao-yellow: #ffe812
 }

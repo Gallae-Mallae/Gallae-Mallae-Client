@@ -12,7 +12,7 @@
             <span class="search-icon">
                 <img src="@/assets/icons/ic_search.png" alt="검색 아이콘" class="icon-small" />
             </span>
-            <input type="text" v-model="searchQuery" placeholder="장소, 주소를 검색하세요" />
+            <input type="text" v-model="searchQuery" placeholder="장소를 검색하세요" />
         </div>
     </form>
 </template>
