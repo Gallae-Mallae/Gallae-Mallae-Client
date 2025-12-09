@@ -18,7 +18,7 @@ import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
 import type { PlaceCardData } from '@/types/place';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
-import image from '@/assets/images/examplePlace.png';
+import image from '@/assets/images/example_place.png';
 
 interface SearchData {
     sido: string;

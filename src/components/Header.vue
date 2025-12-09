@@ -14,15 +14,29 @@
     </div>
 
     <div class="header-right">
-      <button class="login-button">{{ strings.BUTTON_LOGIN }}</button>
+      <button class="login-button" @click="openModal">{{ strings.BUTTON_LOGIN }}</button>
     </div>
 
   </header>
+
+  <LoginModal :is-visible="isModalOpen" @close="closeModal" />
 </template>
 
 <script setup lang="ts">
 
+import { ref } from 'vue';
 import strings from '@/assets/values/strings.header.json';
+import LoginModal from '@/views/login/LoginModal.vue';
+
+const isModalOpen = ref(false);
+
+const openModal = () => {
+  isModalOpen.value = true;
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+};
 
 </script>
 
