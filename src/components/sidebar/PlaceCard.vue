@@ -14,17 +14,19 @@
 
             <div class="place-meta">
                 <span class="meta-item like-count">
-                    <img src="@/assets/icons/ic_heart.png" alt="좋아요" class="icon-small" :class="{'icon-red': place.isLiked}" />
+                    <img src="@/assets/icons/ic_heart.png" alt="좋아요" class="icon-small"
+                        :class="{ 'icon-red': place.isLiked }" />
                     {{ place.likes }}
                 </span>
 
-     <span class="meta-item bookmark-toggle" @click.stop="emit('mark', place.id)">
-          <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small" :class="{'icon-marked': place.isMarked}" />
-        </span>
+                <span class="meta-item bookmark-toggle" @click.stop="emit('mark', place.id)">
+                    <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small"
+                        :class="{ 'icon-marked': place.isMarked }" />
+                </span>
 
-        <span class="meta-item share-action" @click.stop="emit('share', place.id)">
-          <img src="@/assets/icons/ic_share.png" alt="공유" class="icon-small" />
-        </span>
+                <span class="meta-item share-action" @click.stop="emit('share', place.id)">
+                    <img src="@/assets/icons/ic_share.png" alt="공유" class="icon-small" />
+                </span>
             </div>
         </div>
 
@@ -36,14 +38,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { PlaceCardData } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/place';
 import { getCategoryVarName } from '@/utils/categoryMap';
 
 const emit = defineEmits(['mark', 'share', 'click'])
 
 // Props 정의
 const props = defineProps<{
-    place: PlaceCardData
+    place: PlaceCardDTO
 }>();
 
 // computed 속성을 사용하여 카테고리 코드에 맞는 변수 이름을 계산
@@ -132,7 +134,7 @@ const tagInlineStyle = computed(() => {
     margin-right: 4px;
 }
 
-.place-address img, 
+.place-address img,
 .meta-item img {
     margin-right: 4px;
 }

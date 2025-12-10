@@ -1,4 +1,4 @@
-export interface PlaceCardData {
+export interface PlaceCardDTO {
     id: string;
     imageUrl: string;
     title: string;

@@ -16,7 +16,7 @@
 import { ref, onMounted } from 'vue';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
-import type { PlaceCardData } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/place';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
 import image from '@/assets/images/example_place.png';
 
@@ -29,14 +29,14 @@ interface SearchData {
 // 상태 관리
 const loading = ref(false);
 const hasSearched = ref(false);
-const searchResults = ref<PlaceCardData[]>([]); // 검색 결과
-const recommendations = ref<PlaceCardData[]>([]); // 검색 전 추천 장소
+const searchResults = ref<PlaceCardDTO[]>([]); // 검색 결과
+const recommendations = ref<PlaceCardDTO[]>([]); // 검색 전 추천 장소
 
 // 더미데이터 생성
 const CATEGORY_CODES = [39, 40, 12, 32];
 const DEFAULT_CATEGORY_CODE = 99;
 
-const createDummyPlace = (baseQuery: string, index: number, isRec: boolean): PlaceCardData => {
+const createDummyPlace = (baseQuery: string, index: number, isRec: boolean): PlaceCardDTO => {
 
     const rawCode = CATEGORY_CODES[index % CATEGORY_CODES.length];
     const code: number = rawCode ?? DEFAULT_CATEGORY_CODE;

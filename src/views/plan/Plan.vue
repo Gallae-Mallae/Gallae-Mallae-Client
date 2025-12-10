@@ -1,14 +1,45 @@
 <template>
-    <div id="plan">
-        <h1>Plan</h1>
+    <div class="plan-page-layout">
+
+        <SideBar>
+            <template #search>
+                <SideBarSearchTab />
+            </template>
+            <template #my>
+                <SideBarMyTab />
+            </template>
+        </SideBar>
+
+        <main class="main-content">
+            <PlanCardList class="plan-list-area" />
+        </main>
+
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
 
-export default {
-    name: 'Plan'
-}
+import SideBar from '@/components/sidebar/SideBar.vue';
+import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
+import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
+import PlanCardList from '@/views/plan/PlanCardList.vue';
+
+
 </script>
 
-<style></style>
+<style scoped>
+.plan-page-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.main-content {
+    flex-grow: 1;
+    background-color: var(--color-gray-lightest, #f7f7f7);
+}
+
+.plan-list-area {
+    width: 100%;
+}
+</style>

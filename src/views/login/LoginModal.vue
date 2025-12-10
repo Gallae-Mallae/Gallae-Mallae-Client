@@ -48,6 +48,8 @@ const handleKakaoLogin = () => {
     font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
 }
 
 .login-text {

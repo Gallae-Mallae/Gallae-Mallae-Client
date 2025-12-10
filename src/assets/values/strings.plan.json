@@ -1,0 +1,11 @@
+{
+    "ADD_PLAN": "새 일정 만들기",
+    "EDIT_PLAN": "일정 수정하기",
+
+    "PLAN_NAME": "여행 이름",
+    "PLAN_PERIOD": "여행 기간",
+    "PLAN_DASH": "-",
+    "PLAN_ADD_BUTTON": "일정 만들기",
+    "PLAN_EDIT_BUTTON": "일정 수정하기",
+    "PLAN_CANCEL_BUTTON": "취소"
+}
