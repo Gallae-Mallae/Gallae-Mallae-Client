@@ -5,7 +5,7 @@ import {
 } from "vue-router";
 
 const HomeView = () => import("@/views/Home.vue");
-const PlanView = () => import("@/views/plan/PlanCardList.vue");
+const PlanView = () => import("@/views/plan/Plan.vue");
 const SearchView = () => import("@/views/search/Search.vue");
 const OAuthRedirectView = () => import("@/views/login/OAuthRedirect.vue");
 const TestUserView = () => import("@/views/login/TestUser.vue");
