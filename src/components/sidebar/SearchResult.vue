@@ -7,10 +7,10 @@
 <script setup lang="ts">
 
 import PlaceCard from '@/components/sidebar/PlaceCard.vue';
-import type { PlaceCardData } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/place';
 
 const props = defineProps<{
-    place: PlaceCardData
+    place: PlaceCardDTO
 }>();
 
 const emit = defineEmits(['itemClick', 'mark', 'share']);

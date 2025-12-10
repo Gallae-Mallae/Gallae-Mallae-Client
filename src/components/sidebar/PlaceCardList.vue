@@ -37,12 +37,12 @@
 <script setup lang="ts">
 import strings from '@/assets/values/strings.sidebar.json';
 import SearchResult from '@/components/sidebar/SearchResult.vue'; 
-import type { PlaceCardData } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/place';
 
 // --- Props 정의 ---
 const props = defineProps<{
     /* 목록에 표시할 장소 데이터 배열 (검색 결과 또는 추천 장소) */
-    places: PlaceCardData[];
+    places: PlaceCardDTO[];
     /* 로딩 상태인지 */
     loading: boolean;
     /* 검색이 실행된 상태인지 */

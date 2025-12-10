@@ -36,14 +36,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { PlaceCardData } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/place';
 import { getCategoryVarName } from '@/utils/categoryMap';
 
 const emit = defineEmits(['mark', 'share', 'click'])
 
 // Props 정의
 const props = defineProps<{
-    place: PlaceCardData
+    place: PlaceCardDTO
 }>();
 
 // computed 속성을 사용하여 카테고리 코드에 맞는 변수 이름을 계산
