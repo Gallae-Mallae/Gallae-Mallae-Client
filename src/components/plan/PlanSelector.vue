@@ -46,7 +46,7 @@ const tabs: { type: PlanType, label: string, iconPath: string }[] = [
 <style scoped>
 .plan-selector-container {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     padding: 4px;
 }
 
