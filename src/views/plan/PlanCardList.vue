@@ -2,16 +2,16 @@
     <div id="plan-view">
         <div>
             <PlanSelector @update:type="handleTypeChange" />
-        </div>
-        <div class="simple-card-display">
-            <PlanCard :plan="mockPlan" />
+            <div class="simple-card-display">
+                <PlanCard :plan="mockPlan" />
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 
-import PlanSelector from '@/components/plan/PlanSelector.vue';
+import PlanSelector from '@/components/PlanSelector.vue';
 import type { PlanType } from '@/types/plan';
 import PlanCard from '@/components/plan/PlanCard.vue';
 import type { PlanCardDTO } from '@/types/plan';
