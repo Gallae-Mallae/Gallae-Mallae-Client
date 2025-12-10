@@ -4,7 +4,7 @@
             <h2 class="popup-title">{{ strings.LOGIN_TITLE }}</h2>
             <p class="login-text">{{ strings.LOGIN_DESCRIPTION }}</p>
 
-            <button class="kakao-login-button">
+            <button class="kakao-login-button" @click="handleKakaoLogin">
                 <img src="@/assets/images/button_kakao_login.png" alt="카카오 로그인" class="kakao-login-image" />
             </button>
 
@@ -23,11 +23,22 @@ import BaseModal from '@/components/BaseModal.vue';
 
 const isModalOpen = ref(true);
 
-// 로그인 페이지로 이동하는 부분
-
 const closeLoginModal = () => {
     isModalOpen.value = false;
 };
+
+// 로그인 페이지로 이동
+const BACKEND_DOMAIN = 'https://api.gallaemallae.site';
+const REDIRECT_PATH = '/oauth2/redirect';
+
+const handleKakaoLogin = () => {
+    const currentDomain = window.location.origin;
+    const encodedRedirectUri = encodeURIComponent(`${currentDomain}${REDIRECT_PATH}`);
+
+    const KAKAO_AUTH_URI = `${BACKEND_DOMAIN}/oauth2/authorization/kakao?redirect_uri=${encodedRedirectUri}`;
+
+    window.location.href = KAKAO_AUTH_URI;
+}
 
 </script>
 
