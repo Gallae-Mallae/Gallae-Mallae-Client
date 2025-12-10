@@ -8,6 +8,7 @@ const HomeView = () => import("@/views/Home.vue");
 const PlanView = () => import("@/views/plan/Plan.vue");
 const SearchView = () => import("@/views/search/Search.vue");
 const OAuthRedirectView = () => import("@/views/login/OAuthRedirect.vue");
+const TestUserView = () => import("@/views/login/TestUser.vue");
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -36,6 +37,13 @@ const routes: Array<RouteRecordRaw> = [
     name: "OAuthRedirect",
     component: OAuthRedirectView,
     meta: { title: "로그인" },
+  },
+
+  {
+    path: "/test-user",
+    name: "TestUser",
+    component: TestUserView,
+    meta: { title: "유저 정보 확인 테스트" },
   },
 ];
 
