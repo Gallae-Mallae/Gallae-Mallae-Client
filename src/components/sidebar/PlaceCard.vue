@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { PlaceCardDTO } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/sidebar';
 import { getCategoryVarName } from '@/utils/categoryMap';
 
 const emit = defineEmits(['mark', 'share', 'click'])

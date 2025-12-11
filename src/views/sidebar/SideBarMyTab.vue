@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import PlaceFolderList from '@/components/sidebar/PlaceFolderList.vue';
-import type { PlaceFolderDTO } from '@/types/placefolder';
+import type { PlaceFolderDTO } from '@/types/sidebar';
 import strings from '@/assets/values/strings.sidebar.json';
 
 const loading = ref(false);

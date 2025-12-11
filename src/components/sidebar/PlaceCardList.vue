@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import strings from '@/assets/values/strings.sidebar.json';
 import SearchResult from '@/components/sidebar/SearchResult.vue'; 
-import type { PlaceCardDTO } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/sidebar';
 
 // --- Props 정의 ---
 const props = defineProps<{

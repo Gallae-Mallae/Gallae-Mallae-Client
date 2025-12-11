@@ -8,3 +8,9 @@ export interface PlanCardDTO {
   imageUrl: string;
   isShared: boolean;
 }
+
+export interface PlanMemberDTO {
+  id: string;
+  userId: string;
+  planId: string;
+}
