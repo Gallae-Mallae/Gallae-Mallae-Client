@@ -14,6 +14,7 @@ export interface PlanMemberDTO {
   userId: string;
   planId: string;
 
+  name: string,
   nickname: string | null;
   profileImageUrl: string | null;
 }

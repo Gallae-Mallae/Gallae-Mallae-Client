@@ -16,7 +16,7 @@
         </div>
 
         <div class="header-right">
-            <TimelineParticipants :participants="transformedParticipants" />
+            <TimelineParticipants :participants="props.participants" />
 
             <div class="action-buttons">
                 <button class="action-button primary" @click="handleCopy">
@@ -35,7 +35,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { PlanCardDTO, PlanMemberDTO } from '@/types/plan';
-import type { UserDTO } from '@/types/user';
 import TimelineParticipants from '@/components/plan/TimelineParticipants.vue';
 import savePlanIcon from '@/assets/icons/ic_save_plan.png';
 import editPlanIcon from '@/assets/icons/ic_edit_plan.png';
@@ -64,20 +63,6 @@ const handleEditSaveToggle = () => {
     // 상태 토글
     isEditing.value = !isEditing.value;
 };
-
-const transformedParticipants = computed(() => {
-    return props.participants.map(member => {
-        return {
-            // Long -> String으로 처리하기로 했으므로, String 그대로 전달
-            userId: member.userId,
-            nickname: member.nickname,
-            profileImageUrl: member.profileImageUrl,
-
-            // UserDTO의 필수 필드 'name'을 nickname으로 채움 (fallback)
-            name: member.nickname || '참가자',
-        } as UserDTO;
-    });
-});
 
 const dateRange = computed(() => {
     return `${props.planData.startDate} ~ ${props.planData.endDate}`;
