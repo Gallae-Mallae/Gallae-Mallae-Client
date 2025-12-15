@@ -45,8 +45,8 @@ const hasProfileImage = computed(() => !!props.user.profileImageUrl);
 }
 
 .avatar-image-wrapper {
-    width: 45px;
-    height: 45px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     overflow: hidden;
     border: 2px solid #ddd;

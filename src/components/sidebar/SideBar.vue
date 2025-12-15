@@ -39,6 +39,7 @@ const activeTab = ref<'search' | 'my'>('search');
   box-shadow: var(--shadow-default);
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .sidebar-tabs {

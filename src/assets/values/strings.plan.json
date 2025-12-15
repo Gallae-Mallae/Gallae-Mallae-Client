@@ -7,5 +7,10 @@
     "PLAN_DASH": "-",
     "PLAN_ADD_BUTTON": "일정 만들기",
     "PLAN_EDIT_BUTTON": "일정 수정하기",
-    "PLAN_CANCEL_BUTTON": "취소"
+    "PLAN_CANCEL_BUTTON": "취소",
+
+    "MAP_BUTTON": "지도보기",
+    "COPY_LINK_BUTTON": "링크복사",
+    "SAVE_PLAN_BUTTON": "저장하기",
+    "EDIT_PLAN_BUTTON": "수정하기"
 }

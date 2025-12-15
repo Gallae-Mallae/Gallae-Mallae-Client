@@ -1,28 +1,86 @@
 <template>
+  <div class="home-container">
+    <h2>타임라인 헤더 UI 테스트 (Home.vue)</h2>
+    
+    <TimelineHeader 
+      :plan-data="dummyPlanData" 
+      :participants="dummyMembers" 
+    />
 
-        <TimelineParticipants :participants="dummyParticipants" />
-
+    <p class="note">
+      * 위 영역이 TimelineHeader.vue 컴포넌트입니다.
+    </p>
+  </div>
 </template>
 
 <script setup lang="ts">
-import TimelineParticipants from '@/components/plan/TimelineParticipants.vue'; // 💡 새로 구현한 컴포넌트 import
-import type { UserDTO } from '@/types/user'; // UserDTO 타입 import
+import TimelineHeader from '@/components/plan/TimelineHeader.vue';
+import type { PlanCardDTO, PlanMemberDTO } from '@/types/plan'; 
 
-// --- 더미 데이터 (총 8명) ---
-// 6명 표시 + 2명 오버플로우 테스트용
-const dummyParticipants: UserDTO[] = [
-    { userId: 1, email: "u1@e.c", name: "김민수", nickname: "미니", profileImageUrl: "https://i.pravatar.cc/150?img=60", deletedAt: null },
-    { userId: 2, email: "u2@e.c", name: "이지은", nickname: null, profileImageUrl: "https://i.pravatar.cc/150?img=49", deletedAt: null },
-    { userId: 3, email: "u3@e.c", name: "박서준", nickname: "쭈니", profileImageUrl: null, deletedAt: null },
-    // { userId: 4, email: "u4@e.c", name: "최유진", nickname: null, profileImageUrl: "https://i.pravatar.cc/150?img=53", deletedAt: null },
-    // { userId: 5, email: "u5@e.c", name: "정우성", nickname: "배우", profileImageUrl: "https://i.pravatar.cc/150?img=54", deletedAt: null },
-    // { userId: 6, email: "u6@e.c", name: "김태리", nickname: null, profileImageUrl: null, deletedAt: null }, // 💡 기본 프로필 테스트용 (6번째)
-    // { userId: 7, email: "u7@e.c", name: "유재석", nickname: "메인MC", profileImageUrl: "https://i.pravatar.cc/150?img=55", deletedAt: null }, // 💡 오버플로우
-    // { userId: 8, email: "u8@e.c", name: "송혜교", nickname: "배우2", profileImageUrl: "https://i.pravatar.cc/150?img=56", deletedAt: null }, // 💡 오버플로우
+// 1. PlanCardDTO 더미 데이터
+const dummyPlanData: PlanCardDTO = {
+    id: 'plan-test-01',
+    title: '제주도 힐링 여행',
+    startDate: '2024-12-05',
+    endDate: '2024-12-10',
+    imageUrl: '',
+    isShared: true,
+};
+
+const dummyMembers: PlanMemberDTO[] = [
+    { 
+        id: 'm1', 
+        userId: 'u1', 
+        planId: dummyPlanData.id, 
+        nickname: '김민수', 
+        profileImageUrl: 'https://i.pravatar.cc/150?img=60' 
+    },
+    { 
+        id: 'm2', 
+        userId: 'u2', 
+        planId: dummyPlanData.id, 
+        nickname: '이지은', 
+        profileImageUrl: 'https://i.pravatar.cc/150?img=49' 
+    },
+    { 
+        id: 'm3', 
+        userId: 'u3', 
+        planId: dummyPlanData.id, 
+        nickname: '박서준', 
+        profileImageUrl: 'https://i.pravatar.cc/150?img=53' 
+    },
+    { 
+        id: 'm4', 
+        userId: 'u4', 
+        planId: dummyPlanData.id, 
+        nickname: '최유진', 
+        profileImageUrl: 'https://i.pravatar.cc/150?img=54' 
+    },
+    { 
+        id: 'm5', 
+        userId: 'u5', 
+        planId: dummyPlanData.id, 
+        nickname: '정우성', 
+        profileImageUrl: null 
+    },
 ];
-
 </script>
 
 <style scoped>
+.home-container {
+  padding: 20px;
+}
 
+h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+  color: #555;
+}
+
+/* TimelineHeader 컴포넌트는 자체 스타일을 가지고 있으므로, 추가 스타일링은 최소화 */
+.note {
+    margin-top: 15px;
+    font-size: 14px;
+    color: gray;
+}
 </style>

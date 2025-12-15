@@ -31,12 +31,11 @@ import PlanCardList from '@/views/plan/PlanCardList.vue';
 .plan-page-layout {
     display: flex;
     min-height: 100vh;
-    width: 100%;
 }
 
 .main-content {
     flex-grow: 1;
-    background-color: var(--color-gray-lightest, #f7f7f7);
+    background-color: var(--color-gray-lightest, #f8f8f8);
 }
 
 .plan-list-area {
