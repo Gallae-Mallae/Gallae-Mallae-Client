@@ -21,8 +21,10 @@ import { getCategoryDisplayName } from '@/utils/categoryMap';
 import image from '@/assets/images/example_place.png';
 
 interface SearchData {
-    sido: string;
-    gugun: string;
+    sidoName: string;
+    sidoCode: number;
+    gugunName: string;
+    gugunCode: number;
     query: string;
 }
 
@@ -73,8 +75,10 @@ const fetchRecommendations = async () => {
 };
 
 const handleSearch = async (data: SearchData) => {
-    if (!data.query.trim()) {
-        alert("검색어를 입력해 주세요.");
+    // 검색어가 없어도 지역 선택만으로 검색 가능할 수 있으므로 query check는 상황에 따라 조절
+    // 여기서는 일단 query가 있거나 지역이 선택되었으면 검색 허용
+    if (!data.query.trim() && !data.sidoCode) {
+        alert("검색어 또는 지역을 선택해주세요.");
         return;
     }
 
@@ -82,15 +86,18 @@ const handleSearch = async (data: SearchData) => {
     hasSearched.value = true;
     searchResults.value = [];
 
-    // TODO: 실제 API 호출
+    console.log(`[Search] Request: ${data.sidoName}(${data.sidoCode}) ${data.gugunName}(${data.gugunCode}) - "${data.query}"`);
+
+    // TODO: 실제 API 호출 시 data.sidoCode, data.gugunCode 사용
     await new Promise(resolve => setTimeout(resolve, 800));
 
     loading.value = false;
 
     // 검색 결과 더미 데이터 생성
+    const displayQuery = data.query || data.gugunName || data.sidoName;
     const numResults = Math.floor(Math.random() * 5) + 3;
     searchResults.value = Array.from({ length: numResults }, (_, i) =>
-        createDummyPlace(data.query, i, false)
+        createDummyPlace(displayQuery, i, false)
     );
 };
 

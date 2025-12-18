@@ -21,50 +21,50 @@
 import { ref, computed, watch } from 'vue';
 import Dropdown from '@/components/sidebar/Dropdown.vue';
 
-// 타입과 값의 import 분리 => TypeScript 오류 방지
-import { sidos, guguns } from '@/assets/datas/address';
-import type { Sido, Gugun } from '@/types/sidebar';
+// 변경된 데이터 구조 import
+import { locations } from '@/assets/datas/address';
+import type { Sido } from '@/assets/datas/address';
 
 const selectedSidoName = ref('');
 const selectedGugunName = ref('');
 const searchQuery = ref('');
 
-// 시도 이름 목록
-const sidoNames = computed(() => ['전체', ...sidos.map(s => s.name)]);
+// 시도 이름 목록 생성
+const sidoNames = computed(() => ['전체', ...locations.map(s => s.name)]);
 
-// 현재 선택된 시도 객체를 찾습니다. (구군 필터링을 위한 내부 로직)
+// 현재 선택된 시도 객체 찾기
 const selectedSido = computed<Sido | undefined>(() =>
-    sidos.find(s => s.name === selectedSidoName.value)
+    locations.find(s => s.name === selectedSidoName.value)
 );
 
-// 구군 이름 목록 (선택된 시도에 따라 동적으로 변경)
+// 구군 이름 목록 생성 (선택된 시도 하위의 guguns 배열 사용)
 const gugunNames = computed(() => {
     const sido = selectedSido.value;
-    // 시도가 선택 전, 빈 배열 반환
     if (!sido) return ["전체"];
 
-    // 선택된 시도의 sidoId와 일치하는 구군만 필터링
-    const filteredGuguns = guguns.filter(g => g.sidoId === sido.id);
-
-    return ['전체', ...filteredGuguns.map(g => g.name)];
+    return ['전체', ...sido.guguns.map(g => g.name)];
 });
 
-// 감시자(Watcher): 시도 변경 시 구군 초기화 로직
-watch(selectedSidoName, (newSidoName) => {
-    // 시도가 새로 선택되면, 구군 선택을 '전체'로 설정
-    if (newSidoName) {
+// 시도가 변경되면 구군을 '전체'로 초기화
+watch(selectedSidoName, (newVal) => {
+    if (newVal) {
         selectedGugunName.value = '전체';
     }
 });
 
-// 폼 제출 로직
 const emit = defineEmits(['searchSubmit']);
 
 const submitForm = () => {
-    // SearchTab으로 모든 입력 데이터를 전달
+    // 선택된 시도/구군의 Code 찾기
+    const sidoObj = locations.find(s => s.name === selectedSidoName.value);
+    const gugunObj = sidoObj?.guguns.find(g => g.name === selectedGugunName.value);
+
+    // API 요청을 위해 코드값도 함께 전달
     emit('searchSubmit', {
-        sido: selectedSidoName.value,
-        gugun: selectedGugunName.value,
+        sidoName: selectedSidoName.value === '전체' ? '' : selectedSidoName.value,
+        sidoCode: sidoObj?.code || 0,
+        gugunName: selectedGugunName.value === '전체' ? '' : selectedGugunName.value,
+        gugunCode: gugunObj?.code || 0,
         query: searchQuery.value.trim(),
     });
 };
