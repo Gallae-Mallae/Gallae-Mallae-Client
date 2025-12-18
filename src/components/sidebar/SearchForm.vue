@@ -23,7 +23,7 @@ import Dropdown from '@/components/sidebar/Dropdown.vue';
 
 // 타입과 값의 import 분리 => TypeScript 오류 방지
 import { sidos, guguns } from '@/assets/datas/address';
-import type { Sido, Gugun } from '@/types/address';
+import type { Sido, Gugun } from '@/types/sidebar';
 
 const selectedSidoName = ref('');
 const selectedGugunName = ref('');

@@ -16,7 +16,7 @@
 <script setup lang="ts">
 
 import { computed } from 'vue';
-import type { PlaceFolderDTO } from '@/types/placefolder';
+import type { PlaceFolderDTO } from '@/types/sidebar';
 
 const props = defineProps<{
     folder: PlaceFolderDTO;

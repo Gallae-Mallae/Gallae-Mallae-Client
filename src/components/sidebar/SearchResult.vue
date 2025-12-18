@@ -7,7 +7,7 @@
 <script setup lang="ts">
 
 import PlaceCard from '@/components/sidebar/PlaceCard.vue';
-import type { PlaceCardDTO } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/sidebar';
 
 const props = defineProps<{
     place: PlaceCardDTO

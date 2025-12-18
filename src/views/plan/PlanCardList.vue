@@ -5,7 +5,8 @@
         </div>
 
         <div class="plan-list-grid">
-            <PlanCard v-for="plan in filteredPlans" :key="plan.id" :plan="plan" @edit-plan="handleEditPlan" />
+            <PlanCard v-for="plan in filteredPlans" :key="plan.id" :plan="plan" @edit-plan="handleEditPlan"
+                @click="goToDetail(plan.id)" />
             <PlanCreateCard @create="handleCreatePlan" />
         </div>
 
@@ -17,6 +18,7 @@
 <script setup lang="ts">
 
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 
 import PlanSelector from '@/components/plan/PlanSelector.vue';
 import type { PlanType } from '@/types/plan';
@@ -28,6 +30,8 @@ import type { PlanCardDTO } from '@/types/plan';
 import PlanFormModal from '@/components/plan/PlanFormModal.vue';
 
 import imageMock from '@/assets/images/example_plan.png';
+
+const router = useRouter();
 
 const isModalVisible = ref(false);
 const modalMode = ref<'CREATE' | 'EDIT'>('CREATE');
@@ -55,6 +59,13 @@ const filteredPlans = computed(() => {
     }
     return [];
 });
+
+const goToDetail = (planId: string) => {
+    router.push({
+        name: 'PlanDetail',
+        params: { id: planId }
+    });
+};
 
 const handleTypeChange = (newType: PlanType) => {
     currentPlanType.value = newType;
@@ -108,7 +119,7 @@ const handleSubmitPlan = (payload: any) => {
 
 <style scoped>
 .plan-card-list-view {
-    padding: 50px;
+    padding: 40px;
     background-color: #f7f7f7;
     min-height: 100vh;
 }

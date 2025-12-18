@@ -1,8 +1,6 @@
 export interface UserDTO {
-  userId: number;
-  email: string;
+  userId: string;
   name: string;
   nickname: string | null;
   profileImageUrl: string | null;
-  deletedAt: string | null;
 }

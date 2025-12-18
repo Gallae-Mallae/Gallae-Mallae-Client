@@ -37,7 +37,7 @@ const handleClick = () => {
 }
 
 .plan-create-card:hover {
-  border-color: #101828;
+  border-color: #777;
   box-shadow: 0 4px 10px rgba(52, 152, 219, 0.1);
   background-color: #f4f3f3;
 }

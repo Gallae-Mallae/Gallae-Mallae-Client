@@ -16,7 +16,7 @@
 import { ref, onMounted } from 'vue';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
-import type { PlaceCardDTO } from '@/types/place';
+import type { PlaceCardDTO } from '@/types/sidebar';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
 import image from '@/assets/images/example_place.png';
 
