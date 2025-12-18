@@ -36,6 +36,7 @@ const activeTab = ref<'search' | 'my'>('search');
   width: 380px;
   min-height: 100vh;
   background-color: var(--color-white);
+  border-right: 1px solid var(--color-gray-light, #eee);
   box-shadow: var(--shadow-default);
   display: flex;
   flex-direction: column;

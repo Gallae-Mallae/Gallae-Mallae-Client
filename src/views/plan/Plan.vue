@@ -11,7 +11,7 @@
         </SideBar>
 
         <main class="main-content">
-            <PlanCardList class="plan-list-area" />
+            <router-view />
         </main>
 
     </div>
@@ -22,23 +22,21 @@
 import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
 import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
-import PlanCardList from '@/views/plan/PlanCardList.vue';
-
 
 </script>
 
 <style scoped>
 .plan-page-layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .main-content {
     flex-grow: 1;
     background-color: var(--color-gray-lightest, #f8f8f8);
-}
-
-.plan-list-area {
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 </style>

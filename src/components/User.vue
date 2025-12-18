@@ -49,7 +49,7 @@ const hasProfileImage = computed(() => !!props.user.profileImageUrl);
     height: 42px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid #ddd;
+    border: 1.5px solid #ddd;
 }
 
 .default-avatar-bg {

@@ -4,7 +4,7 @@
             <img :src="plan.imageUrl" :alt="plan.title" class="plan-card-image" />
 
             <span class="plan-edit" @click="handleEditClick">
-                <img src="@/assets/icons/ic_edit_plan.png" alt="수정" class="icon-small" />
+                <img src="@/assets/icons/ic_edit.png" alt="수정" class="icon-small" />
             </span>
 
             <div class="plan-card-info-overlay">
@@ -89,8 +89,8 @@ const handleEditClick = (event: MouseEvent) => {
 
 .plan-edit {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 10px;
+    right: 10px;
     z-index: 10;
     cursor: pointer;
     opacity: 0.0; 
@@ -106,8 +106,8 @@ const handleEditClick = (event: MouseEvent) => {
 }
 
 .icon-small {
-    width: 40px; 
-    height: 40px;
+    width: 38px; 
+    height: 38px;
 }
 
 </style>

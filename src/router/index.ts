@@ -5,8 +5,13 @@ import {
 } from "vue-router";
 
 const HomeView = () => import("@/views/Home.vue");
+
 const PlanView = () => import("@/views/plan/Plan.vue");
+const PlanCardList = () => import("@/views/plan/PlanCardList.vue");
+const PlanTimetable = () => import("@/views/plan/PlanTimetable.vue");
+
 const SearchView = () => import("@/views/search/Search.vue");
+
 const OAuthRedirectView = () => import("@/views/login/OAuthRedirect.vue");
 const TestUserView = () => import("@/views/login/TestUser.vue");
 
@@ -27,9 +32,22 @@ const routes: Array<RouteRecordRaw> = [
 
   {
     path: "/plan",
-    name: "PlanCreate",
     component: PlanView,
-    meta: { title: "일정 짜기" },
+    children: [
+      {
+        path: "",
+        name: "PlanList",
+        component: PlanCardList,
+        meta: { title: "일정 목록" },
+      },
+      {
+        path: ":id",
+        name: "PlanDetail",
+        component: PlanTimetable,
+        meta: { title: "일정 상세" },
+        props: true,
+      },
+    ],
   },
 
   {

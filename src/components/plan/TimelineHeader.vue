@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import type { PlanCardDTO, PlanMemberDTO } from '@/types/plan';
 import TimelineParticipants from '@/components/plan/TimelineParticipants.vue';
 import savePlanIcon from '@/assets/icons/ic_save_plan.png';
@@ -45,12 +46,19 @@ interface Props {
     participants: PlanMemberDTO[];
 }
 
+const router = useRouter();
+
 const props = defineProps<Props>();
 
 const isEditing = ref(false);
 
 const saveEditButtonText = computed(() => isEditing.value ? strings.SAVE_PLAN_BUTTON : strings.EDIT_PLAN_BUTTON);
 const saveEditButtonIcon = computed(() => isEditing.value ? savePlanIcon : editPlanIcon);
+
+const handleBack = () => {
+    // '/plan' 경로인 PlanList로 명시적 이동
+    router.push({ name: 'PlanList' }); 
+};
 
 const handleEditSaveToggle = () => {
     if (isEditing.value) {
@@ -67,10 +75,6 @@ const handleEditSaveToggle = () => {
 const dateRange = computed(() => {
     return `${props.planData.startDate} ~ ${props.planData.endDate}`;
 });
-
-const handleBack = () => {
-
-};
 
 const handleMapView = () => {
 
@@ -99,6 +103,7 @@ const handleEdit = () => {
     border-bottom: 1px solid #eee;
     background: white;
     width: 100%;
+    user-select: none;
 }
 
 .header-left,
