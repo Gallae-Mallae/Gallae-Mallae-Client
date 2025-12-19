@@ -27,6 +27,14 @@ export interface PlaceCardDTO {
     isMarked: boolean;
 }
 
+export interface SearchData {
+    sidoName: string;
+    sidoCode: number;
+    gugunName: string;
+    gugunCode: number;
+    query: string;
+}
+
 export interface PlaceFolderDTO {
     id: string;
     name: string;

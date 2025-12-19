@@ -4,14 +4,244 @@ import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
 import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 import { contentTypes } from '@/utils/categoryMap';
+import type { SearchData } from '@/types/sidebar';
+import { getMapAttractions, type MapAttractionResponse, type MapAttractionParams } from '@/api/attraction';
 
 // 선택된 카테고리 상태 (null이면 선택 안함)
 const selectedCategory = ref<number | null>(null);
 
+// Map 관련 상태
+const mapInstance = ref<any>(null);
+const showReSearchButton = ref(false);
+const isSearchMode = ref(false); // SideBarSearchTab의 hasSearched 상태 동기화
+const isPanningToCluster = ref(false); // 클러스터 이동 중인지 확인하는 플래그
+
+// 마커 관리를 위한 배열
+const markers = ref<any[]>([]);
+const customOverlays = ref<any[]>([]);
+
+// 현재 검색 필터 상태 (API 호출 시 사용)
+const currentFilters = ref<{
+    sido?: number;
+    guguns?: number;
+    keyword?: string;
+    contenttype?: number;
+}>({});
+
+// SideBarSearchTab 참조
+const sideBarSearchTabRef = ref<InstanceType<typeof SideBarSearchTab> | null>(null);
+
+// 마커 및 오버레이 초기화
+const clearMarkers = () => {
+  if (markers.value.length > 0) {
+    markers.value.forEach(marker => marker.setMap(null));
+    markers.value = [];
+  }
+  if (customOverlays.value.length > 0) {
+    customOverlays.value.forEach(overlay => overlay.setMap(null));
+    customOverlays.value = [];
+  }
+};
+
+// 지도 API 호출 및 마커 그리기
+const fetchMapMarkers = async () => {
+    if (!mapInstance.value) return;
+
+    const bounds = mapInstance.value.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const zoomLevel = mapInstance.value.getLevel();
+
+    const params: MapAttractionParams = {
+        zoomLevel,
+        southWestLat: sw.getLat(),
+        southWestLng: sw.getLng(),
+        northEastLat: ne.getLat(),
+        northEastLng: ne.getLng(),
+        sido: currentFilters.value.sido || undefined,
+        guguns: currentFilters.value.guguns || undefined,
+        keyword: currentFilters.value.keyword || undefined,
+        contenttype: currentFilters.value.contenttype || undefined
+    };
+
+    try {
+        const data = await getMapAttractions(params);
+        console.log(`[Map] Fetched ${data.length} items from /api/attractions/map`);
+        drawMarkers(data);
+    } catch (error) {
+        console.error("Failed to fetch map attractions:", error);
+    }
+};
+
+// 데이터 기반으로 마커/오버레이 그리기
+const drawMarkers = (data: MapAttractionResponse[]) => {
+    clearMarkers();
+
+    if (!mapInstance.value) return;
+
+    data.forEach(item => {
+        const position = new (window as any).kakao.maps.LatLng(item.latitude, item.longitude);
+
+        if (item.count > 1) {
+            // 클러스터 (커스텀 오버레이) - DOM Element 생성 방식 사용
+            const content = document.createElement('div');
+            content.className = 'cluster-overlay';
+            content.innerHTML = `<div class="cluster-count">${item.count}</div>`;
+
+            // 클릭 이벤트: 중심 이동 + 줌 인 + 재검색
+            content.addEventListener('click', (e) => {
+                e.stopPropagation(); // 이벤트 전파 방지
+                if (!mapInstance.value) return;
+
+                console.log(`[Cluster] Clicked! Snapping to ${item.latitude}, ${item.longitude}`);
+
+                // 1. 플래그 설정 (bounds 체크 방지)
+                isPanningToCluster.value = true;
+
+                // 2. 먼저 중심을 강제로 이동 (애니메이션 없이 정확한 위치로)
+                mapInstance.value.setCenter(position);
+
+                // 3. 그 다음 줌 레벨 변경 (애니메이션)
+                const currentLevel = mapInstance.value.getLevel();
+                const newLevel = Math.max(1, currentLevel - 2); // 최소 레벨 1
+
+                // 줌 변경 시점
+                setTimeout(() => {
+                    mapInstance.value.setLevel(newLevel, { animate: true });
+                }, 50);
+
+                // 4. 애니메이션 종료 예상 시점 후 API 재호출
+                // (idle 이벤트가 줌 애니메이션 중에 여러 번 튈 수 있어 setTimeout이 안전)
+                setTimeout(() => {
+                    console.log("[Cluster] Animation finished. Re-fetching...");
+                    isPanningToCluster.value = false;
+                    fetchMapMarkers();
+                }, 800); // 줌 애니메이션 시간 고려
+            });
+            
+            const overlay = new (window as any).kakao.maps.CustomOverlay({
+                position: position,
+                content: content,
+                xAnchor: 0.5,
+                yAnchor: 0.5,
+                clickable: false // 중요: false로 설정해야 DOM의 hover/click 이벤트가 정상 작동함
+            });
+            
+            overlay.setMap(mapInstance.value);
+            customOverlays.value.push(overlay);
+
+        } else {
+            // 단일 마커
+            const marker = new (window as any).kakao.maps.Marker({
+                position: position,
+                title: item.title // hover 시 타이틀 표시
+            });
+
+            marker.setMap(mapInstance.value);
+            markers.value.push(marker);
+            
+            // TODO: 마커 클릭 이벤트 등 추가 가능
+        }
+    });
+};
+
+// 사이드바 검색 요청 처리 (유일한 검색 시작점)
+const handleSidebarSearchRequest = (data: SearchData) => {
+    // 필터 업데이트 (사이드바 폼 + 현재 선택된 카테고리)
+    currentFilters.value = {
+        sido: data.sidoCode || undefined,
+        guguns: data.gugunCode || undefined,
+        keyword: data.query || undefined,
+        contenttype: selectedCategory.value || undefined
+    };
+
+    const hasActiveFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
+
+    if (hasActiveFilters) {
+        // 검색 조건이 있으면 검색 모드 활성화 및 API 호출
+        isSearchMode.value = true;
+        fetchMapMarkers();
+
+        // 사이드바 리스트도 함께 갱신
+        if (mapInstance.value && sideBarSearchTabRef.value) {
+            sideBarSearchTabRef.value.searchByBounds(mapInstance.value.getBounds(), currentFilters.value);
+        }
+    } else {
+        // 검색 조건이 없으면 검색 모드 해제 및 초기화
+        isSearchMode.value = false;
+        clearMarkers();
+        showReSearchButton.value = false;
+    }
+};
+
+// 지도 내 재검색 버튼 클릭
+const handleReSearchInMap = async () => {
+  if (!mapInstance.value || !sideBarSearchTabRef.value) return;
+  
+  const bounds = mapInstance.value.getBounds();
+  showReSearchButton.value = false; // 버튼 숨기기
+
+  // [중요] 검색 폼의 현재 상태 가져오기 (입력만 하고 엔터 안 친 상태 반영)
+  const currentSearchData = sideBarSearchTabRef.value.getCurrentSearchData();
+  
+  if (currentSearchData) {
+      currentFilters.value = {
+          sido: currentSearchData.sidoCode || undefined,
+          guguns: currentSearchData.gugunCode || undefined,
+          keyword: currentSearchData.query || undefined,
+          contenttype: selectedCategory.value || undefined
+      };
+  }
+
+  // 1. 지도 마커 갱신 (현재 필터 + 현재 뷰포트)
+  fetchMapMarkers();
+
+  // 2. 사이드바 리스트 갱신 (현재 필터 반영)
+  await sideBarSearchTabRef.value.searchByBounds(bounds, currentFilters.value);
+};
+
+// 지도 이벤트 핸들러
+const onMapInteract = () => {
+  if (isSearchMode.value && !isPanningToCluster.value) {
+    showReSearchButton.value = true;
+  }
+};
+
+const handleSearchStateChange = (hasSearched: boolean) => {
+    isSearchMode.value = hasSearched;
+    if (!hasSearched) {
+        showReSearchButton.value = false;
+        clearMarkers(); // 검색 초기화 시 마커도 제거?
+        currentFilters.value = {}; // 필터 초기화
+    } else {
+        showReSearchButton.value = false;
+    }
+};
+
+const handleMapHighlight = (placeId: string, coords: { lat: number, lng: number }) => {
+  console.log(`[Search] 지도 하이라이트: ${placeId} (${coords.lat}, ${coords.lng})`);
+  if (mapInstance.value) {
+    const moveLatLon = new (window as any).kakao.maps.LatLng(coords.lat, coords.lng);
+    mapInstance.value.panTo(moveLatLon);
+  }
+};
+
+const handleResetRequest = () => {
+    selectedCategory.value = null;
+    currentFilters.value = {};
+    isSearchMode.value = false;
+    showReSearchButton.value = false;
+    clearMarkers();
+};
+
+const handleMarkAction = (placeId: string) => {
+  console.log(`[Search] 마크 액션: ${placeId}`);
+};
+
 // 카테고리 토글 함수
 const toggleCategory = (code: number) => {
   if (selectedCategory.value === code) {
-    selectedCategory.value = null; // 이미 선택된거 누르면 해제 (One-by-one, Toggle)
+    selectedCategory.value = null;
   } else {
     selectedCategory.value = code;
   }
@@ -24,8 +254,6 @@ onMounted(() => {
   }
 
   const container = document.getElementById('map');
-  
-  // 초기 위치 고정: 서울시청
   const initialLat = 37.5665;
   const initialLng = 126.9780;
 
@@ -36,78 +264,66 @@ onMounted(() => {
 
   try {
     const map = new (window as any).kakao.maps.Map(container, options);
-    console.log('Map initialized successfully at Seoul City Hall');
+    mapInstance.value = map; // Ref에 저장
+    console.log('Map initialized successfully');
 
-    // 1. 줌 레벨 제한 (1 ~ 13)
     map.setMinLevel(1);
     map.setMaxLevel(13);
 
-    // 사용자가 요청한 '직접 레벨을 가져와서 확인하는' 안전장치 추가
-    (window as any).kakao.maps.event.addListener(map, 'zoom_changed', () => {
-      const level = map.getLevel();
-      if (level < 1) {
-        map.setLevel(1);
-      } else if (level > 13) {
-        map.setLevel(13);
-      }
-    });
+    // 줌/드래그 제한 로직
+    const wideBounds = new (window as any).kakao.maps.LatLngBounds(
+      new (window as any).kakao.maps.LatLng(32.0, 123.0),
+      new (window as any).kakao.maps.LatLng(43.0, 134.0)
+    );
+    const mediumBounds = new (window as any).kakao.maps.LatLngBounds(
+      new (window as any).kakao.maps.LatLng(33.5, 125.5),
+      new (window as any).kakao.maps.LatLng(42.0, 131.0)
+    );
+    const tightBounds = new (window as any).kakao.maps.LatLngBounds(
+      new (window as any).kakao.maps.LatLng(35.5, 127.0),
+      new (window as any).kakao.maps.LatLng(40.0, 128.5)
+    );
 
-    // 2. 드래그 영역 제한 (줌 레벨에 따라 동적으로 제한)
-    // 넓은 영역 (줌 1~11): 북쪽을 아주 시원하게(43.0) 뚫어줌
-    const wideSouthWest = new (window as any).kakao.maps.LatLng(32.0, 123.0);
-    const wideNorthEast = new (window as any).kakao.maps.LatLng(43.0, 134.0);
-    const wideBounds = new (window as any).kakao.maps.LatLngBounds(wideSouthWest, wideNorthEast);
+    const checkBounds = () => {
+      // 클러스터 이동 중일 때는 검사하지 않음
+      if (isPanningToCluster.value) return;
 
-    // 중간 영역 (줌 12): 북쪽을 훨씬 더 느슨하게(42.0) 확장
-    const mediumSouthWest = new (window as any).kakao.maps.LatLng(33.5, 125.5);
-    const mediumNorthEast = new (window as any).kakao.maps.LatLng(42.0, 131.0);
-    const mediumBounds = new (window as any).kakao.maps.LatLngBounds(mediumSouthWest, mediumNorthEast);
-
-    // 좁은 영역 (줌 13): 흰 공백 방지용. 아래(남쪽)는 타이트하게, 위(북쪽)는 더 시원하게(40.0) 확장
-    const tightSouthWest = new (window as any).kakao.maps.LatLng(35.5, 127.0);
-    const tightNorthEast = new (window as any).kakao.maps.LatLng(40.0, 128.5);
-    const tightBounds = new (window as any).kakao.maps.LatLngBounds(tightSouthWest, tightNorthEast);
-
-    // 중심 좌표가 변경될 때마다(드래그 중에도) 영역 확인
-    (window as any).kakao.maps.event.addListener(map, 'center_changed', () => {
       const level = map.getLevel();
       const center = map.getCenter();
+      let currentBounds;
       
-      // 줌 레벨에 따라 적용할 경계선 선택
-      let currentBounds, targetSW, targetNE;
-      
-      if (level >= 13) {
-        currentBounds = tightBounds;
-        targetSW = tightSouthWest;
-        targetNE = tightNorthEast;
-      } else if (level === 12) {
-        currentBounds = mediumBounds;
-        targetSW = mediumSouthWest;
-        targetNE = mediumNorthEast;
-      } else {
-        currentBounds = wideBounds;
-        targetSW = wideSouthWest;
-        targetNE = wideNorthEast;
-      }
+      if (level >= 13) currentBounds = tightBounds;
+      else if (level === 12) currentBounds = mediumBounds;
+      else currentBounds = wideBounds;
       
       if (!currentBounds.contain(center)) {
-        // 영역을 벗어나려고 하면 즉시 경계선으로 고정
         let lat = center.getLat();
         let lng = center.getLng();
+        const sw = currentBounds.getSouthWest();
+        const ne = currentBounds.getNorthEast();
 
-        const swLat = targetSW.getLat();
-        const swLng = targetSW.getLng();
-        const neLat = targetNE.getLat();
-        const neLng = targetNE.getLng();
-
-        if (lat < swLat) lat = swLat;
-        if (lat > neLat) lat = neLat;
-        if (lng < swLng) lng = swLng;
-        if (lng > neLng) lng = neLng;
+        if (lat < sw.getLat()) lat = sw.getLat();
+        if (lat > ne.getLat()) lat = ne.getLat();
+        if (lng < sw.getLng()) lng = sw.getLng();
+        if (lng > ne.getLng()) lng = ne.getLng();
 
         map.setCenter(new (window as any).kakao.maps.LatLng(lat, lng));
       }
+    };
+
+    (window as any).kakao.maps.event.addListener(map, 'zoom_changed', () => {
+        const level = map.getLevel();
+        if (level < 1) map.setLevel(1);
+        else if (level > 13) map.setLevel(13);
+        
+        onMapInteract();
     });
+
+    (window as any).kakao.maps.event.addListener(map, 'center_changed', () => {
+        checkBounds();
+    });
+
+    (window as any).kakao.maps.event.addListener(map, 'dragend', onMapInteract);
 
   } catch (err) {
     console.error('Error initializing map:', err);
@@ -119,7 +335,15 @@ onMounted(() => {
   <div class="search-page-layout">
     <SideBar>
       <template #search>
-        <SideBarSearchTab />
+        <SideBarSearchTab 
+            ref="sideBarSearchTabRef"
+            :selected-category="selectedCategory"
+            @map-highlight="handleMapHighlight"
+            @mark-action="handleMarkAction"
+            @state-change="handleSearchStateChange"
+            @search-request="handleSidebarSearchRequest"
+            @reset-request="handleResetRequest"
+        />
       </template>
       <template #my>
         <SideBarMyTab />
@@ -142,9 +366,61 @@ onMounted(() => {
           {{ type.name }}
         </button>
       </div>
+
+      <!-- 현 지도에서 검색 버튼 -->
+      <transition name="fade">
+        <div v-if="showReSearchButton" class="re-search-overlay">
+            <button class="re-search-btn" @click="handleReSearchInMap">
+                <span class="re-search-icon">↻</span>
+                현 지도에서 검색
+            </button>
+        </div>
+      </transition>
+
     </main>
     </div>
 </template>
+
+<style>
+/* 전역 스타일로 추가해야 Kakao Map 오버레이에 적용됨 */
+.cluster-overlay {
+    background: #fff;
+    border: 3px solid #3b82f6; /* 파란색 테두리 */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
+    font-weight: 800;
+    font-size: 14px; /* 폰트는 살짝 줄여서 긴 숫자 대비 */
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    pointer-events: auto;
+    z-index: 999;
+    position: relative; /* pseudo-element 위치 기준 */
+}
+
+/* 호버 시 효과 */
+.cluster-overlay:hover {
+    background: #3b82f6;
+    color: #fff;
+    transform: scale(1.1) translateY(-2px); /* 살짝 커지면서 위로 */
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.5);
+    z-index: 1000;
+}
+
+.cluster-overlay:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4);
+}
+
+.cluster-count {
+    /* 중앙 정렬됨 */
+}
+</style>
 
 <style scoped>
 @import '@/assets/styles/_category.css';
@@ -219,15 +495,64 @@ onMounted(() => {
   background-color: #f9f9f9;
 }
 
-/* Active 상태: 바탕색이 어두워지고 글자가 흰색으로 */
 .category-btn.active {
-  background-color: #333; /* 어두운 바탕 */
-  color: var(--color-white); /* 흰색 글자 */
+  background-color: #333; 
+  color: var(--color-white);
   border-color: #333;
 }
 
-/* Active 상태일 때 동그라미 색상은 유지되도록 */
 .category-btn.active .category-dot {
-  box-shadow: 0 0 2px rgba(255,255,255,0.5); /* 흰 글자 사이에서 더 잘 보이게 살짝 강조 */
+  box-shadow: 0 0 2px rgba(255,255,255,0.5);
+}
+
+/* 현 지도 검색 버튼 스타일 */
+.re-search-overlay {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+}
+
+.re-search-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: var(--color-white, #fff);
+    color: var(--color-primary, #3498db); /* Primary Color 추정 */
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.re-search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+    background-color: #fcfcfc;
+}
+
+.re-search-btn:active {
+    transform: translateY(0);
+}
+
+.re-search-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* 트랜지션 효과 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

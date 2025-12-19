@@ -1,7 +1,7 @@
 <template>
     <div class="side-bar-search-tab">
 
-        <SearchForm @search-submit="handleSearch" />
+        <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
 
         <div class="search-results-area">
             <PlaceCardList :places="hasSearched ? searchResults : recommendations" :loading="loading"
@@ -12,38 +12,42 @@
 </template>
 
 <script setup lang="ts">
-
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, defineExpose, watch } from 'vue';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
-import type { PlaceCardDTO } from '@/types/sidebar';
+import type { PlaceCardDTO, SearchData } from '@/types/sidebar';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
+import { getAttractions, type MapAttractionParams } from '@/api/attraction';
 import image from '@/assets/images/example_place.png';
 
-interface SearchData {
-    sidoName: string;
-    sidoCode: number;
-    gugunName: string;
-    gugunCode: number;
-    query: string;
-}
+// Props 정의
+const props = defineProps<{
+    selectedCategory?: number | null;
+}>();
+
+// Emits 정의
+const emit = defineEmits<{
+    (e: 'map-highlight', placeId: string, coords: { lat: number, lng: number }): void;
+    (e: 'mark-action', placeId: string): void;
+    (e: 'state-change', hasSearched: boolean): void;
+    (e: 'search-request', data: SearchData): void;
+    (e: 'reset-request'): void;
+}>();
 
 // 상태 관리
 const loading = ref(false);
 const hasSearched = ref(false);
 const searchResults = ref<PlaceCardDTO[]>([]); // 검색 결과
 const recommendations = ref<PlaceCardDTO[]>([]); // 검색 전 추천 장소
+const searchFormRef = ref<InstanceType<typeof SearchForm> | null>(null);
 
-// 더미데이터 생성
+// 더미데이터 생성 유틸 (추천용으로 유지)
 const CATEGORY_CODES = [39, 40, 12, 32];
 const DEFAULT_CATEGORY_CODE = 99;
 
 const createDummyPlace = (baseQuery: string, index: number, isRec: boolean): PlaceCardDTO => {
-
     const rawCode = CATEGORY_CODES[index % CATEGORY_CODES.length];
     const code: number = rawCode ?? DEFAULT_CATEGORY_CODE;
-
-    // 카테고리 코드에 맞는 카테고리 이름
     const name = getCategoryDisplayName(code);
 
     return {
@@ -63,7 +67,7 @@ const createDummyPlace = (baseQuery: string, index: number, isRec: boolean): Pla
 
 const fetchRecommendations = async () => {
     loading.value = true;
-    // TODO: 실제 API 호출
+    // TODO: 실제 추천 API 호출
     await new Promise(resolve => setTimeout(resolve, 600));
 
     loading.value = false;
@@ -75,44 +79,93 @@ const fetchRecommendations = async () => {
 };
 
 const handleSearch = async (data: SearchData) => {
-    // 검색어가 없어도 지역 선택만으로 검색 가능할 수 있으므로 query check는 상황에 따라 조절
-    // 여기서는 일단 query가 있거나 지역이 선택되었으면 검색 허용
-    if (!data.query.trim() && !data.sidoCode) {
-        alert("검색어 또는 지역을 선택해주세요.");
+    // 검색어, 지역, 카테고리 중 하나라도 있으면 검색 허용
+    if (!data.query.trim() && !data.sidoCode && !props.selectedCategory) {
+        alert("검색어, 지역 또는 카테고리를 선택해주세요.");
         return;
     }
 
-    loading.value = true;
-    hasSearched.value = true;
+    // 부모에게 검색 요청 이벤트 전달 (Search.vue에서 fetchMapMarkers 호출 유도)
+    emit('search-request', data);
+};
+
+const handleReset = () => {
+    hasSearched.value = false;
     searchResults.value = [];
+    emit('reset-request');
+};
 
-    console.log(`[Search] Request: ${data.sidoName}(${data.sidoCode}) ${data.gugunName}(${data.gugunCode}) - "${data.query}"`);
+// 부모 컴포넌트(Search.vue)에서 호출할 수 있는 함수
+const searchByBounds = async (bounds: any, filters: any = {}) => {
+    // const sw = bounds.getSouthWest();
+    // const ne = bounds.getNorthEast();
+    
+    // loading.value = true;
+    hasSearched.value = true;
+    // searchResults.value = [];
 
-    // TODO: 실제 API 호출 시 data.sidoCode, data.gugunCode 사용
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // const params: MapAttractionParams = {
+    //     zoomLevel: 3, 
+    //     southWestLat: sw.getLat(),
+    //     southWestLng: sw.getLng(),
+    //     northEastLat: ne.getLat(),
+    //     northEastLng: ne.getLng(),
+    //     ...filters
+    // };
 
-    loading.value = false;
+    // try {
+    //     const data = await getAttractions(params);
+    //     searchResults.value = data.map(item => ({
+    //         id: String(item.attrId),
+    //         imageUrl: item.imageUrl || image,
+    //         title: item.title,
+    //         address: item.address,
+    //         latitude: item.latitude,
+    //         longitude: item.longitude,
+    //         categoryCode: item.categoryCode,
+    //         categoryName: getCategoryDisplayName(item.categoryCode),
+    //         likes: item.likes,
+    //         isLiked: item.isLiked,
+    //         isMarked: item.isMarked,
+    //     }));
+    // } catch (error) {
+    //     console.error("Failed to fetch sidebar attractions:", error);
+    // } finally {
+    //     loading.value = false;
+    // }
+};
 
-    // 검색 결과 더미 데이터 생성
-    const displayQuery = data.query || data.gugunName || data.sidoName;
-    const numResults = Math.floor(Math.random() * 5) + 3;
-    searchResults.value = Array.from({ length: numResults }, (_, i) =>
-        createDummyPlace(displayQuery, i, false)
-    );
+
+// 현재 검색 폼 데이터 반환 함수
+const getCurrentSearchData = (): SearchData | null => {
+    if (searchFormRef.value) {
+        return searchFormRef.value.getFormData();
+    }
+    return null;
 };
 
 // PlaceCardList로부터 받은 이벤트 처리
-
 const handleMapHighlight = (placeId: string, coords: { lat: number, lng: number }) => {
-    console.log(`[SearchTab] 지도 하이라이트 요청: ID ${placeId} at (${coords.lat}, ${coords.lng})`);
+    emit('map-highlight', placeId, coords);
 };
 
 const handleMarkAction = (placeId: string) => {
-    console.log(`[SearchTab] 북마크/좋아요 토글 요청: ID ${placeId}`);
+    emit('mark-action', placeId);
 };
+
+// hasSearched 상태 변경 감지하여 부모에게 알림
+watch(hasSearched, (newVal) => {
+    emit('state-change', newVal);
+});
 
 onMounted(() => {
     fetchRecommendations();
+});
+
+// 외부 노출
+defineExpose({
+    searchByBounds,
+    getCurrentSearchData
 });
 
 </script>
