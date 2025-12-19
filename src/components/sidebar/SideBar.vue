@@ -1,16 +1,10 @@
 <template>
   <aside class="app-sidebar">
     <div class="sidebar-tabs">
-      <button 
-        :class="['tab-button', { active: activeTab === 'search' }]" 
-        @click="activeTab = 'search'"
-      >
+      <button :class="['tab-button', { active: activeTab === 'search' }]" @click="activeTab = 'search'">
         {{ strings.TAB_SEARCH }}
       </button>
-      <button 
-        :class="['tab-button', { active: activeTab === 'my' }]" 
-        @click="activeTab = 'my'"
-      >
+      <button :class="['tab-button', { active: activeTab === 'my' }]" @click="activeTab = 'my'">
         {{ strings.TAB_MY }}
       </button>
     </div>
@@ -34,7 +28,7 @@ const activeTab = ref<'search' | 'my'>('search');
 <style scoped>
 .app-sidebar {
   width: 380px;
-  min-height: 100vh;
+  height: 100%;
   background-color: var(--color-white);
   border-right: 1px solid var(--color-gray-light, #eee);
   box-shadow: var(--shadow-default);
@@ -58,13 +52,18 @@ const activeTab = ref<'search' | 'my'>('search');
   font-weight: 500;
   color: var(--color-gray-medium);
   transition: all 0.2s;
-  
+
   /* 비활성화된 탭의 하단 바 (높이유지) */
-  border-bottom: 3px solid transparent; 
+  border-bottom: 3px solid transparent;
 }
 
-.tab-button:first-child { margin-left: 0; }
-.tab-button:last-child { margin-right: 0; }
+.tab-button:first-child {
+  margin-left: 0;
+}
+
+.tab-button:last-child {
+  margin-right: 0;
+}
 
 
 .tab-button.active {
@@ -72,14 +71,12 @@ const activeTab = ref<'search' | 'my'>('search');
   font-weight: 700;
 
   /* 활성화된 탭의 하단 바 */
-  border-bottom: 3px solid var(--color-primary-dark); 
+  border-bottom: 3px solid var(--color-primary-dark);
 }
 
 .tab-content {
   flex-grow: 1;
-  /* 스크롤바 */
   overflow-y: auto;
   height: 0;
 }
-
 </style>

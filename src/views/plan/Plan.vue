@@ -28,7 +28,7 @@ import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 <style scoped>
 .plan-page-layout {
     display: flex;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 

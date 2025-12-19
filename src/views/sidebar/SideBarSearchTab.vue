@@ -3,6 +3,15 @@
 
         <SearchForm @search-submit="handleSearch" />
 
+        <div v-if="isPlanPage" class="drag-guide-container">
+            <div class="guide-item memo-guide" draggable="true" @dragstart="handleMemoDragStart">
+                <p>📝 메모를 드래그하여 일정표에 추가하세요.</p>
+            </div>
+            <div class="guide-item place-guide">
+                <p>💡 장소를 드래그하여 일정표에 추가하세요.</p>
+            </div>
+        </div>
+
         <div class="search-results-area">
             <PlaceCardList :places="hasSearched ? searchResults : recommendations" :loading="loading"
                 :has-searched="hasSearched" @item-click="handleMapHighlight" @mark="handleMarkAction" />
@@ -13,12 +22,16 @@
 
 <script setup lang="ts">
 
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
 import type { PlaceCardDTO } from '@/types/sidebar';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
 import image from '@/assets/images/example_place.png';
+
+const route = useRoute();
+const isPlanPage = computed(() => route.path.startsWith('/plan/'))
 
 interface SearchData {
     sido: string;
@@ -95,7 +108,6 @@ const handleSearch = async (data: SearchData) => {
 };
 
 // PlaceCardList로부터 받은 이벤트 처리
-
 const handleMapHighlight = (placeId: string, coords: { lat: number, lng: number }) => {
     console.log(`[SearchTab] 지도 하이라이트 요청: ID ${placeId} at (${coords.lat}, ${coords.lng})`);
 };
@@ -108,6 +120,23 @@ onMounted(() => {
     fetchRecommendations();
 });
 
+const handleMemoDragStart = (e: DragEvent) => {
+    if (e.dataTransfer) {
+        // 1. 드래그 이미지 설정 (선택 사항)
+        e.dataTransfer.setDragImage(e.currentTarget as HTMLElement, 20, 20);
+
+        // 2. 'MEMO'라는 이름표를 붙여서 데이터 포장
+        const memoData = {
+            type: 'MEMO',
+            title: '새 메모' // 일정표에 생성될 때의 기본 이름
+        };
+
+        // 3. 데이터를 'MEMO' 키로 저장
+        e.dataTransfer.setData('MEMO', JSON.stringify(memoData));
+        e.dataTransfer.effectAllowed = 'move';
+    }
+};
+
 </script>
 
 <style scoped>
@@ -117,9 +146,49 @@ onMounted(() => {
     height: 100%;
 }
 
+.drag-guide-container {
+    padding: 10px 15px;
+}
+
+.guide-item {
+    padding: 10px 12px;
+    border: 1px dashed #d1d1d1;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background-color: white;
+    font-size: 12px;
+    color: #666;
+}
+
+.guide-item p {
+    margin: 0;
+}
+
+.memo-guide {
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.memo-guide:hover {
+    border-color: var(--color-primary, #4a90e2);
+    background-color: #f0f7ff;
+    color: #333;
+}
+
+.memo-guide:active {
+    cursor: grabbing;
+}
+
+.place-guide {
+    background-color: #fafafa;
+    border-style: solid;
+    border-color: #efefef;
+    margin-bottom: 0;
+}
+
 .search-results-area {
     flex-grow: 1;
-    padding: 0 15px 15px;
+    padding: 0 15px;
     overflow-y: auto;
 }
 </style>

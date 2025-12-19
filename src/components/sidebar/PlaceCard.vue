@@ -1,5 +1,5 @@
 <template>
-    <div class="place-card">
+    <div class="place-card" :draggable="isDraggable" :class="{ 'draggable': isDraggable }" @dragstart="handleDragStart">
         <div class="card-image">
             <img :src="place.imageUrl" :alt="place.title" loading="lazy" />
         </div>
@@ -38,8 +38,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import type { PlaceCardDTO } from '@/types/sidebar';
 import { getCategoryVarName } from '@/utils/categoryMap';
+
+const route = useRoute();
 
 const emit = defineEmits(['mark', 'share', 'click'])
 
@@ -59,6 +62,26 @@ const tagInlineStyle = computed(() => {
         '--tag-bg': `var(--category-tag-bg-${categoryCssVarName.value})`
     };
 });
+
+const isDraggable = computed(() => {
+    // 특정 경로에서 드래그 가능하도록 설정
+    return route.path.startsWith('/plan/');
+});
+
+const handleDragStart = (event: DragEvent) => {
+    if (!isDraggable.value) {
+        event.preventDefault();
+        return;
+    }
+
+    if (event.dataTransfer) {
+        event.dataTransfer.setDragImage(event.currentTarget as HTMLElement, 20, 20);
+
+        event.dataTransfer?.setData('place', JSON.stringify(props.place));
+        event.dataTransfer!.effectAllowed = 'move';
+    }
+
+};
 
 </script>
 

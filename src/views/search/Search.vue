@@ -15,7 +15,7 @@
         <p>검색 결과가 지도에 마커로 표시될 공간입니다.</p>
       </div>
     </main>
-    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -29,7 +29,7 @@ import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 <style scoped>
 .search-page-layout {
   display: flex;
-  min-height: 100vh; 
+  height: 100%;
 }
 
 .main-content {
@@ -44,8 +44,8 @@ import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 }
 
 .my-tab-placeholder {
-    padding: 15px;
-    color: var(--color-gray-medium);
-    text-align: center;
+  padding: 15px;
+  color: var(--color-gray-medium);
+  text-align: center;
 }
 </style>
