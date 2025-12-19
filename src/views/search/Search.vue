@@ -427,7 +427,7 @@ onMounted(() => {
 
 .search-page-layout {
   display: flex;
-  height: 100%; 
+  height: calc(100vh - 58px); /* 헤더 높이(약 58px) 제외한 전체 높이 */
   width: 100%;
   overflow: hidden; 
 }

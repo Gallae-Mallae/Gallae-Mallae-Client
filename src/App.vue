@@ -18,17 +18,5 @@ import Header from '@/components/Header.vue';
 </script>
 
 <style>
-#app-root {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden; /* 전체 화면 스크롤 방지 */
-}
-
-.content-wrapper {
-  flex: 1; /* 남은 공간을 모두 차지함 */
-  overflow: auto; /* 내용이 넘치면 스크롤 */
-  display: flex; /* 자식 컴포넌트도 높이를 꽉 채울 수 있게 함 */
-  flex-direction: column;
-}
+/* 전역 레이아웃 스타일 제거됨 */
 </style>
