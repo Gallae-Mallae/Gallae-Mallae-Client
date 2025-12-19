@@ -73,7 +73,7 @@ const handleDrop = (event: DragEvent) => {
     }
   }
 
-  // 2. 신규 장소 추가
+  // 2. 신규 장소 추가 (PLACE)
   if (rawPlace) {
     const placeData: PlaceItemDTO = JSON.parse(rawPlace);
     const newItem: Omit<ScheduleItemDTO, 'id'> = {

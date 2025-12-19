@@ -2,6 +2,12 @@
     <div class="schedule-block" :style="blockStyle" draggable="true" @dragstart="handleDragStart"
         @click="$emit('select', item)">
         <div class="block-content">
+            <div class="memo-icon-container">
+                <div class="white-circle">
+                    <img src="@/assets/icons/ic_memo.png" alt="메모" />
+                </div>
+            </div>
+
             <div class="title-area">
                 <span class="block-title">{{ item.title }}</span>
             </div>
@@ -146,12 +152,36 @@ const handleDragStart = (e: DragEvent) => {
     justify-content: center;
 }
 
+.memo-icon-container {
+    position: absolute;
+    left: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.white-circle {
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.white-circle img {
+    width: 12px;
+    height: 12px;
+    object-fit: contain;
+}
+
 .title-area {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 0 15px;
     box-sizing: border-box;
 }
 

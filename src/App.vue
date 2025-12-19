@@ -15,4 +15,30 @@ import { RouterView } from 'vue-router';
 import Header from '@/components/Header.vue';
 </script>
 
-<style></style>
+<style>
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+}
+
+#app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.app-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+}
+</style>
