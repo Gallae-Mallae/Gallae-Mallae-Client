@@ -33,7 +33,7 @@ const hours = Array.from({ length: 16 }, (_, i) => {
 }
 
 .time-label {
-    height: 60px;
+    height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
