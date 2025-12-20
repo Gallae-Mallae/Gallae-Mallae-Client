@@ -3,7 +3,17 @@ import { ref, onMounted } from 'vue';
 import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
 import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
-import { contentTypes } from '@/utils/categoryMap';
+const contentTypes = [
+  { code: 12, name: "관광지", cssClass: "ATTRACTION" },
+  { code: 14, name: "문화시설", cssClass: "CULTURE" },
+  { code: 15, name: "축제/공연/행사", cssClass: "FESTIVAL" },
+  { code: 25, name: "여행코스", cssClass: "COURSE" },
+  { code: 28, name: "레포츠", cssClass: "LEPORTS" },
+  { code: 32, name: "숙박", cssClass: "LODGE" },
+  { code: 38, name: "쇼핑", cssClass: "SHOPPING" },
+  { code: 39, name: "식당", cssClass: "FOOD" },
+  { code: 40, name: "카페", cssClass: "CAFE" },
+];
 import type { SearchData } from '@/types/sidebar';
 import { getMapAttractions, type MapAttractionResponse, type MapAttractionParams } from '@/api/attraction';
 
@@ -232,6 +242,11 @@ const handleResetRequest = () => {
     isSearchMode.value = false;
     showReSearchButton.value = false;
     clearMarkers();
+    
+    // 리셋 시에도 현재 지도 기준 추천(랭킹) 데이터 로드
+    if (mapInstance.value && sideBarSearchTabRef.value) {
+        sideBarSearchTabRef.value.searchByBounds(mapInstance.value.getBounds(), { keyword: ' ' }, true);
+    }
 };
 
 const handleMarkAction = (placeId: string) => {
@@ -266,6 +281,20 @@ onMounted(() => {
     const map = new (window as any).kakao.maps.Map(container, options);
     mapInstance.value = map; // Ref에 저장
     console.log('Map initialized successfully');
+
+    // 지도 타일 로드 완료 시 초기 데이터 로드 (한 번만 실행)
+    const onTilesLoaded = () => {
+        if (sideBarSearchTabRef.value) {
+            console.log('[Search] Initial map load complete. Fetching recommendations...');
+            // API 제약(최소 1개 조건)을 우회하기 위해 공백 키워드 전송 시도
+            sideBarSearchTabRef.value.searchByBounds(map.getBounds(), { keyword: ' ' }, true);
+            
+            // 리스너 제거 (최초 1회만 실행)
+            (window as any).kakao.maps.event.removeListener(map, 'tilesloaded', onTilesLoaded);
+        }
+    };
+
+    (window as any).kakao.maps.event.addListener(map, 'tilesloaded', onTilesLoaded);
 
     map.setMinLevel(1);
     map.setMaxLevel(13);

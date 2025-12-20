@@ -46,3 +46,31 @@ export const getAttractions = async (params: MapAttractionParams): Promise<Attra
   });
   return data;
 };
+
+export interface SidebarAttractionItem {
+  attractionId: number;
+  count: number;
+  title: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+  imageUrl: string;
+}
+
+export interface SidebarListResponse {
+  attractions: SidebarAttractionItem[];
+  hasNext: boolean;
+  nowPage: number;
+}
+
+export interface SidebarAttractionParams extends MapAttractionParams {
+  page?: number;
+  size?: number;
+}
+
+export const getSidebarAttractions = async (params: SidebarAttractionParams): Promise<SidebarListResponse> => {
+  const { data } = await axiosInstance.get<SidebarListResponse>('/attractions/map/sidebar', {
+    params,
+  });
+  return data;
+};
