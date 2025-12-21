@@ -28,13 +28,6 @@ export interface MemoDTO {
   displayText: string;
 }
 
-export interface MemoItemDTO {
-  id: string;
-  title: string;
-
-  memoContents: MemoDTO[];
-}
-
 export interface PlaceItemDTO {
   id: string;
   title: string;
@@ -62,7 +55,7 @@ export interface ScheduleItemDTO {
   categoryCode?: number;
   category?: string;
 
-  memoId?: string;
+  memoContents: MemoDTO[];
   placeId?: string;
 }
 

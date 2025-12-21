@@ -1,15 +1,20 @@
 <template>
-    <div class="schedule-block" :style="blockStyle" draggable="true" @dragstart="handleDragStart"
-        @click="$emit('select', item)">
-        <div class="block-content">
-            <div class="memo-icon-container">
+    <div class="schedule-block" :class="{ 'is-active': isMemoModalOpen }" :style="blockStyle" :draggable="isDraggable"
+        @dragstart="handleDragStart">
+
+        <div class="block-content" @click="$emit('click', item)">
+            <div class="memo-icon-container" @click.stop="planStore.toggleMemo(item.id)">
                 <div class="white-circle">
                     <img src="@/assets/icons/ic_memo.png" alt="메모" />
                 </div>
             </div>
 
-            <div class="title-area">
-                <span class="block-title">{{ item.title }}</span>
+            <div class="title-area" @click="$emit('click', item)">
+                <span class="block-title">{{
+                    item.type === 'PLACE'
+                        ? item.title
+                        : (item.memoContents?.[0]?.content ?? '')
+                }}</span>
             </div>
 
             <button class="delete-btn" @click.stop="$emit('remove', item.id)">
@@ -17,17 +22,27 @@
             </button>
         </div>
 
+        <div class="memo-modal-wrapper" v-if="isMemoModalOpen" @mousedown.stop @mouseenter="isDraggable = false"
+            @mouseleave="isDraggable = true">
+            <MemoModal :isVisible="isMemoModalOpen" :title="item.type === 'PLACE' ? item.title : '메모'"
+                :memoContents="item.memoContents" @close="planStore.closeMemo" @add-content="handleAddMemo"
+                @remove-content="handleRemoveMemo"
+                @reorder-memos="(newList) => planStore.updateMemoOrder(item.day, item.id, newList)" />
+        </div>
+
         <div class="resize-handle" @mousedown.stop.prevent="initResize"></div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { usePlanStore } from '@/stores/plan';
 import type { ScheduleItemDTO } from '@/types/plan';
 import { getCategoryVarName } from '@/utils/categoryMap';
+import MemoModal from '@/components/plan/MemoModal.vue';
 
 const planStore = usePlanStore();
+const isMemoModalOpen = computed(() => planStore.activeMemoId === props.item.id);
 
 const emit = defineEmits(['click', 'remove']);
 
@@ -35,6 +50,29 @@ const props = defineProps<{
     item: ScheduleItemDTO;
     unitHeight: number; // 1시간당 높이
 }>();
+
+const handleAddMemo = (memoData: { type: 'TEXT' | 'LINK', content: string }) => {
+    planStore.addMemoToScheduleItem(props.item.day, props.item.id, memoData);
+};
+
+const handleRemoveMemo = (index: number) => {
+    planStore.removeMemoFromScheduleItem(props.item.day, props.item.id, index);
+};
+
+const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (isMemoModalOpen.value && !target.closest('.schedule-block')) {
+        planStore.closeMemo();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('mousedown', handleClickOutside);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('mousedown', handleClickOutside);
+});
 
 const blockStyle = computed(() => {
 
@@ -99,9 +137,17 @@ const stopResize = () => {
     document.body.style.cursor = 'default';
 };
 
+const isDraggable = ref(true);
+
 // 드래그 핸들러
 const handleDragStart = (e: DragEvent) => {
-    if (isResizing.value) {
+    const target = e.target as HTMLElement;
+
+    if (target.closest('.memo-modal-wrapper')) {
+        return;
+    }
+
+    if (!isDraggable.value || isResizing.value) {
         e.preventDefault();
         return;
     }
@@ -118,7 +164,6 @@ const handleDragStart = (e: DragEvent) => {
     };
 
     e.dataTransfer?.setData('application/json', JSON.stringify(dragData));
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
 };
 </script>
 
@@ -131,16 +176,29 @@ const handleDragStart = (e: DragEvent) => {
     color: rgb(0, 0, 0);
     cursor: pointer;
     z-index: 10;
-    overflow: hidden;
     position: absolute;
+    transition: opacity 0.2s, box-shadow 0.2s;
+}
+
+.schedule-block.is-active {
+    z-index: 999;
+    opacity: 1
 }
 
 .schedule-block:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.schedule-block:active {
+.schedule-block:active:not(.is-active) {
     opacity: 0.5;
+}
+
+.schedule-block:active .memo-modal-wrapper {
+    display: none;
+}
+
+.schedule-block.is-active .memo-modal-wrapper {
+    display: block !important;
 }
 
 .block-content {
@@ -158,7 +216,16 @@ const handleDragStart = (e: DragEvent) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none;
+    cursor: pointer;
+}
+
+.memo-modal-wrapper {
+    margin-top: 4px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    z-index: 10000;
 }
 
 .white-circle {
@@ -186,12 +253,22 @@ const handleDragStart = (e: DragEvent) => {
 }
 
 .block-title {
-    font-size: 12.5px;
-    font-weight: 550;
-    white-space: nowrap;
+    display: block;
+    width: 100%;
+
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+
     overflow: hidden;
     text-overflow: ellipsis;
+
+    font-size: 12.5px;
+    font-weight: 550;
     text-align: center;
+    word-break: break-all;
+    padding: 0 24px;
+    box-sizing: border-box;
 }
 
 .delete-btn {

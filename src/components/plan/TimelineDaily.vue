@@ -58,6 +58,7 @@ const handleDrop = (event: DragEvent) => {
   // 데이터 타입 확인 (이동인지, 신규 추가인지)
   const rawJson = event.dataTransfer.getData('application/json');
   const rawPlace = event.dataTransfer.getData('PLACE');
+  const rawMemo = event.dataTransfer.getData('MEMO');
 
   // 1. 기존 일정 이동
   if (rawJson) {
@@ -85,9 +86,28 @@ const handleDrop = (event: DragEvent) => {
       title: placeData.title,
       categoryCode: placeData.categoryCode,
       category: placeData.category,
-      placeId: placeData.id
+      placeId: placeData.id,
+      memoContents: []
     };
     planStore.addScheduleItem(props.data.dayNumber, newItem);
+  }
+
+  // 3. 신규 메모 추가 (MEMO)
+  if (rawMemo) {
+    const memoData = JSON.parse(rawMemo);
+
+    const newItem: Omit<ScheduleItemDTO, 'id'> = {
+      type: 'MEMO',
+      day: props.data.dayNumber,
+      startTime: newStartTime,
+      durationTime: 30,
+      endTime: newStartTime + 30,
+      title: memoData.title,
+      memoContents: []
+    };
+
+    planStore.addScheduleItem(props.data.dayNumber, newItem);
+    return;
   }
 };
 

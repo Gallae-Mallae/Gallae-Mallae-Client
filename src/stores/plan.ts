@@ -1,9 +1,10 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { PlanDTO, ScheduleItemDTO } from "@/types/plan";
+import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
+  const activeMemoId = ref<string | null>(null);
 
   // 초기 데이터 설정 (PlanTimetable의 onMounted에서 호출)
   const setPlanData = (data: PlanDTO) => {
@@ -135,12 +136,83 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
+  // 메모 관련 로직
+  const toggleMemo = (itemId: string | null) => {
+    activeMemoId.value = activeMemoId.value === itemId ? null : itemId;
+  };
+
+  const closeMemo = () => {
+    activeMemoId.value = null;
+  };
+
+  const addMemoToScheduleItem = (
+    dayNumber: number,
+    itemId: string,
+    memoData: { type: "TEXT" | "LINK"; content: string }
+  ) => {
+    if (!planData.value) return;
+
+    const targetDay = planData.value.dailySchedules.find(
+      (d) => d.dayNumber === dayNumber
+    );
+    const item = targetDay?.items.find((i) => i.id === itemId);
+
+    if (item) {
+      const newMemo: MemoDTO = {
+        id: `memo_${Date.now()}`,
+        type: memoData.type,
+        content: memoData.content,
+        displayText: memoData.content,
+      };
+      item.memoContents.push(newMemo);
+    }
+  };
+
+  const removeMemoFromScheduleItem = (
+    dayNumber: number,
+    itemId: string,
+    memoIndex: number
+  ) => {
+    if (!planData.value) return;
+
+    const targetDay = planData.value.dailySchedules.find(
+      (d) => d.dayNumber === dayNumber
+    );
+    const item = targetDay?.items.find((i) => i.id === itemId);
+
+    if (item && item.memoContents[memoIndex]) {
+      item.memoContents.splice(memoIndex, 1);
+    }
+  };
+
+  const updateMemoOrder = (day: number, itemId: string, newList: MemoDTO[]) => {
+    if (!planData.value) return;
+
+    const targetDay = planData.value.dailySchedules.find(
+      (d) => d.dayNumber === day
+    );
+
+    if (targetDay) {
+      const scheduleItem = targetDay.items.find((i) => i.id === itemId);
+
+      if (scheduleItem) {
+        scheduleItem.memoContents = [...newList];
+      }
+    }
+  };
+
   return {
     planData,
+    activeMemoId,
     setPlanData,
     addScheduleItem,
     updateItemDuration,
     moveScheduleItem,
     removeScheduleItem,
+    toggleMemo,
+    closeMemo,
+    addMemoToScheduleItem,
+    removeMemoFromScheduleItem,
+    updateMemoOrder,
   };
 });

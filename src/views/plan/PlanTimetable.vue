@@ -60,7 +60,7 @@ onMounted(() => {
 
 .plan-content {
   flex: 1;
-  padding: 25px;
+  padding: 28px;
   overflow-y: auto;
   background-color: #f8f9fa;
 }
