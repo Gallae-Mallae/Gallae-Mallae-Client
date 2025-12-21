@@ -74,25 +74,25 @@
       @mark="handleModalMark"
     />
 
-    <!-- 폴더 선택 모달 -->
-    <FolderSelectModal 
-        :isVisible="isFolderSelectOpen" 
-        :attractionId="selectedAttractionId"
-        @close="isFolderSelectOpen = false"
-        @open-create="isFolderCreateOpen = true"
-        @saved="fetchFolders"
-    />
-
-    <!-- 폴더 생성 모달 (선택 모달에서 연결됨) -->
-    <FolderCreateModal 
-        :isVisible="isFolderCreateOpen" 
-        @close="isFolderCreateOpen = false"
-        @created="fetchFolders"
-    />
-  </div>
-</template>
-
-<script setup lang="ts">
+        <!-- 폴더 선택 모달 -->
+        <FolderSelectModal 
+            ref="folderSelectRef"
+            :isVisible="isFolderSelectOpen" 
+            :attractionId="selectedAttractionId"
+            @close="isFolderSelectOpen = false"
+            @open-create="isFolderCreateOpen = true"
+            @saved="fetchFolders"
+        />
+    
+        <!-- 폴더 생성 모달 (선택 모달에서 연결됨) -->
+        <FolderCreateModal 
+            :isVisible="isFolderCreateOpen" 
+            @close="isFolderCreateOpen = false" 
+            @created="() => { fetchFolders(); folderSelectRef?.fetchFolders(); }" 
+        />
+      </div>
+    </template>
+    <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import PlaceFolderList from '@/components/sidebar/PlaceFolderList.vue';
 import PlaceCard from '@/components/sidebar/PlaceCard.vue';
@@ -128,6 +128,7 @@ const selectedDetail = ref<any>(null);
 const isFolderSelectOpen = ref(false);
 const isFolderCreateOpen = ref(false);
 const selectedAttractionId = ref<number | null>(null);
+const folderSelectRef = ref<any>(null);
 
 const fetchFolders = async () => {
     if (!authStore.isLoggedIn) return;
@@ -168,19 +169,20 @@ const handleFolderClick = async (folderId: string) => {
             likes: Number(a.likeCount),
             isLiked: likeStore.isLiked(a.attractionId),
             isMarked: true
-        }));
+        }) as PlaceCardDTO);
 
         Promise.all(attractions.map(a => getAttractionDetail(a.attractionId)))
             .then(details => {
                 folderAttractions.value = folderAttractions.value.map((item, idx) => {
                     const detail = details[idx];
+                    if (!detail) return item;
                     return {
                         ...item,
                         categoryCode: detail.contentTypeId,
                         categoryName: getCategoryDisplayName(detail.contentTypeId),
                         latitude: detail.latitude,
                         longitude: detail.longitude
-                    };
+                    } as PlaceCardDTO;
                 });
             })
             .catch(err => console.error("상세 정보 일괄 로드 실패:", err));
@@ -203,13 +205,14 @@ const handleAttractionClick = async (id: string) => {
         
         const index = folderAttractions.value.findIndex(p => p.id === id);
         if (index !== -1) {
+            const currentItem = folderAttractions.value[index];
             folderAttractions.value[index] = {
-                ...folderAttractions.value[index],
+                ...currentItem,
                 categoryCode: detail.contentTypeId,
                 categoryName: getCategoryDisplayName(detail.contentTypeId),
                 latitude: detail.latitude,
                 longitude: detail.longitude
-            };
+            } as PlaceCardDTO;
         }
     } catch (error) {
         console.error("상세 정보 로드 실패:", error);
@@ -224,15 +227,16 @@ const handleLikeAction = (placeId: string) => {
     const item = folderAttractions.value.find(p => p.id === placeId);
     if (!item) return;
 
-    const wasLiked = item.isLiked;
+    const targetItem = item as PlaceCardDTO;
+    const wasLiked = targetItem.isLiked;
     likeStore.toggleLikeState(Number(placeId));
-    item.isLiked = !wasLiked;
-    item.likes += wasLiked ? -1 : 1;
+    targetItem.isLiked = !wasLiked;
+    targetItem.likes += wasLiked ? -1 : 1;
 
     toggleLike(Number(placeId)).catch(() => {
         likeStore.toggleLikeState(Number(placeId));
-        item.isLiked = wasLiked;
-        item.likes += wasLiked ? 1 : -1;
+        targetItem.isLiked = wasLiked;
+        targetItem.likes += wasLiked ? 1 : -1;
     });
 };
 
@@ -240,10 +244,11 @@ const handleModalLike = (placeId: number) => {
     const item = folderAttractions.value.find(p => p.id === String(placeId));
     if (!item) return;
     
+    const targetItem = item as PlaceCardDTO;
     const isNowLiked = likeStore.isLiked(placeId);
-    if (item.isLiked !== isNowLiked) {
-        item.likes += isNowLiked ? 1 : -1;
-        item.isLiked = isNowLiked;
+    if (targetItem.isLiked !== isNowLiked) {
+        targetItem.likes += isNowLiked ? 1 : -1;
+        targetItem.isLiked = isNowLiked;
     }
 };
 
@@ -265,10 +270,9 @@ const handleDeleteFromFolder = async (placeId: string) => {
         await deleteAttractionFromFolder(Number(selectedFolder.value.id), Number(placeId));
         folderAttractions.value = folderAttractions.value.filter(p => p.id !== placeId);
         
-        if (selectedFolder.value) {
+        // selectedFolder는 folders 목록 내의 객체를 참조하고 있으므로 한 번만 감소시키면 됩니다.
+        if (selectedFolder.value && selectedFolder.value.placeCount > 0) {
             selectedFolder.value.placeCount--;
-            const folderInList = folders.value.find(f => f.id === selectedFolder.value?.id);
-            if (folderInList) folderInList.placeCount--;
         }
     } catch (error) {
         console.error("삭제 실패:", error);

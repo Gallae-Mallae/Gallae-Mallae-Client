@@ -66,6 +66,10 @@ const handleSelect = async (folderId: number) => {
     alert('장소 저장에 실패했습니다.');
   }
 };
+
+defineExpose({
+  fetchFolders
+});
 </script>
 
 <style scoped>

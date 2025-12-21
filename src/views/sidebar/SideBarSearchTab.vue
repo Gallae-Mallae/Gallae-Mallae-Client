@@ -47,6 +47,7 @@ const selectedDetail = ref<AttractionDetailResponse | null>(null);
 const isFolderSelectOpen = ref(false);
 const isFolderCreateOpen = ref(false);
 const selectedAttractionId = ref<number | null>(null);
+const folderSelectRef = ref<any>(null);
 
 // 페이지네이션 상태
 const page = ref(0);
@@ -219,16 +220,17 @@ const handleLikeAction = (placeId: string) => {
     const item = searchResults.value.find(p => p.id === placeId);
     if (!item) return;
 
-    const wasLiked = item.isLiked;
+    const targetItem = item as PlaceCardDTO;
+    const wasLiked = targetItem.isLiked;
     likeStore.toggleLikeState(Number(placeId));
-    item.isLiked = !wasLiked;
-    item.likes += wasLiked ? -1 : 1;
+    targetItem.isLiked = !wasLiked;
+    targetItem.likes += wasLiked ? -1 : 1;
 
     toggleLike(Number(placeId)).catch(err => {
         console.error("좋아요 토글 API 실패 (사이드바):", err);
         likeStore.toggleLikeState(Number(placeId));
-        item.isLiked = wasLiked;
-        item.likes += wasLiked ? -1 : 1;
+        targetItem.isLiked = wasLiked;
+        targetItem.likes += wasLiked ? -1 : 1;
         alert("좋아요 처리에 실패했습니다.");
     });
 };
@@ -237,7 +239,7 @@ const handleModalLike = (placeId: number) => {
     const index = searchResults.value.findIndex(p => p.id === String(placeId));
     if (index === -1) return;
 
-    const item = searchResults.value[index];
+    const item = searchResults.value[index] as PlaceCardDTO;
     
     // 모달에서 이미 스토어 상태를 변경했으므로, 현재 스토어 상태를 기준으로 목록의 수치를 동기화
     const isNowLiked = likeStore.isLiked(placeId);
@@ -252,7 +254,7 @@ const handleModalLike = (placeId: number) => {
             ...item,
             isLiked: isNowLiked,
             likes: newLikes
-        };
+        } as PlaceCardDTO;
     }
 };
 
@@ -300,6 +302,7 @@ defineExpose({
 
         <!-- 폴더 선택 모달 -->
         <FolderSelectModal 
+            ref="folderSelectRef"
             :isVisible="isFolderSelectOpen" 
             :attractionId="selectedAttractionId"
             @close="isFolderSelectOpen = false"
@@ -311,7 +314,7 @@ defineExpose({
         <FolderCreateModal 
             :isVisible="isFolderCreateOpen" 
             @close="isFolderCreateOpen = false"
-            @created="() => { /* 선택 모달이 알아서 목록 갱신함 */ }"
+            @created="() => { folderSelectRef?.fetchFolders(); }"
         />
 
     </div>
