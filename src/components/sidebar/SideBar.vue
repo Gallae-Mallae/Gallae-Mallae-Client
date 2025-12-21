@@ -87,6 +87,7 @@ const isOpen = ref(true);
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   z-index: 101;
   transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 1px;
 }
 
 .app-sidebar.is-closed .toggle-button {
