@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
 import AttractionDetailModal from '@/components/sidebar/AttractionDetailModal.vue';
+import FolderSelectModal from '@/components/sidebar/FolderSelectModal.vue';
+import FolderCreateModal from '@/components/sidebar/FolderCreateModal.vue';
 import type { PlaceCardDTO, SearchData } from '@/types/sidebar';
 import { getSidebarAttractions, getAttractionDetail, toggleLike, type SidebarAttractionParams, type AttractionDetailResponse } from '@/api/attraction';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
@@ -40,6 +42,11 @@ const searchFormRef = ref<InstanceType<typeof SearchForm> | null>(null);
 const isModalOpen = ref(false);
 const modalLoading = ref(false);
 const selectedDetail = ref<AttractionDetailResponse | null>(null);
+
+// 폴더 저장 모달 상태
+const isFolderSelectOpen = ref(false);
+const isFolderCreateOpen = ref(false);
+const selectedAttractionId = ref<number | null>(null);
 
 // 페이지네이션 상태
 const page = ref(0);
@@ -190,7 +197,17 @@ const handleShowOnMap = (detail: AttractionDetailResponse) => {
 };
 
 const handleMarkAction = (placeId: string) => {
-    emit('mark-action', placeId);
+    if (!authStore.isLoggedIn) {
+        alert("로그인이 필요한 기능입니다.");
+        return;
+    }
+    selectedAttractionId.value = Number(placeId);
+    isFolderSelectOpen.value = true;
+};
+
+const handleModalMark = (placeId: number) => {
+    selectedAttractionId.value = placeId;
+    isFolderSelectOpen.value = true;
 };
 
 const handleLikeAction = (placeId: string) => {
@@ -253,7 +270,6 @@ defineExpose({
 
 <template>
     <div class="side-bar-search-tab">
-
         <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
 
         <div class="search-results-area" ref="scrollContainer" @scroll="handleScroll">
@@ -277,9 +293,25 @@ defineExpose({
             :detail="selectedDetail"
             @close="isModalOpen = false"
             @show-on-map="handleShowOnMap"
-            @mark="(id) => handleMarkAction(String(id))"
+            @mark="handleModalMark"
             @share="(id) => console.log('Share attraction:', id)"
             @like="handleModalLike"
+        />
+
+        <!-- 폴더 선택 모달 -->
+        <FolderSelectModal 
+            :isVisible="isFolderSelectOpen" 
+            :attractionId="selectedAttractionId"
+            @close="isFolderSelectOpen = false"
+            @open-create="isFolderCreateOpen = true"
+            @saved="() => { /* 필요 시 목록 갱신 */ }"
+        />
+
+        <!-- 폴더 생성 모달 (선택 모달에서 연결됨) -->
+        <FolderCreateModal 
+            :isVisible="isFolderCreateOpen" 
+            @close="isFolderCreateOpen = false"
+            @created="() => { /* 선택 모달이 알아서 목록 갱신함 */ }"
         />
 
     </div>

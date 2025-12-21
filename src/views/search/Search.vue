@@ -40,6 +40,18 @@ const currentFilters = ref<{
 
 // SideBarSearchTab 참조
 const sideBarSearchTabRef = ref<InstanceType<typeof SideBarSearchTab> | null>(null);
+const sideBarMyTabRef = ref<InstanceType<typeof SideBarMyTab> | null>(null);
+
+// 공통 상세 모달 오픈 함수
+const openGlobalDetailModal = (placeId: string) => {
+    if (activeTab.value === 'search' && sideBarSearchTabRef.value) {
+        sideBarSearchTabRef.value.openDetailModal(placeId);
+    } else if (activeTab.value === 'my' && sideBarMyTabRef.value) {
+        sideBarMyTabRef.value.handleAttractionClick(placeId);
+    } else if (sideBarSearchTabRef.value) {
+        sideBarSearchTabRef.value.openDetailModal(placeId);
+    }
+};
 
 // 마커 및 오버레이 초기화
 const clearMarkers = () => {
@@ -166,8 +178,8 @@ const drawMarkers = (data: MapAttractionResponse[]) => {
             content.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const placeId = String((item as any).attractionId || item.attrId);
-                if (placeId !== 'undefined' && placeId !== 'NaN' && sideBarSearchTabRef.value) {
-                    sideBarSearchTabRef.value.openDetailModal(placeId);
+                if (placeId !== 'undefined' && placeId !== 'NaN') {
+                    openGlobalDetailModal(placeId);
                 }
             });
 
@@ -257,8 +269,8 @@ const drawMarkers = (data: MapAttractionResponse[]) => {
                 itemEl.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const placeId = (e.target as HTMLElement).dataset.id;
-                    if (placeId && sideBarSearchTabRef.value) {
-                        sideBarSearchTabRef.value.openDetailModal(placeId);
+                    if (placeId) {
+                        openGlobalDetailModal(placeId);
                         list.style.display = 'none'; // 선택 후 닫기
                         overlay.setZIndex(3000); // 선택 후 zIndex 복구
                     }
@@ -339,9 +351,23 @@ const handleReSearchInMap = async () => {
 
 // 지도 이벤트 핸들러
 const onMapInteract = () => {
-  if (isSearchMode.value && !isPanningToCluster.value) {
+  // 클러스터 이동 중이 아닐 때만 작동
+  if (isPanningToCluster.value) return;
+
+  // 1. 검색 탭인 경우: 한 번이라도 검색을 수행한 상태(isSearchMode)여야 함
+  if ((!activeTab.value || activeTab.value === 'search') && isSearchMode.value) {
     showReSearchButton.value = true;
   }
+  // 2. My 탭인 경우: 기본적으로 버튼을 띄우지 않거나, 필요 시 다른 로직 추가
+};
+
+const activeTab = ref('search'); // 현재 어떤 탭이 활성 상태인지 추적
+
+const handleTabChange = (tab: string) => {
+    activeTab.value = tab;
+    if (tab === 'my') {
+        showReSearchButton.value = false;
+    }
 };
 
 const handleSearchStateChange = (hasSearched: boolean) => {
@@ -500,7 +526,7 @@ onMounted(() => {
 
 <template>
   <div class="search-page-layout">
-    <SideBar>
+    <SideBar @tab-change="handleTabChange">
       <template #search>
         <SideBarSearchTab 
             ref="sideBarSearchTabRef"
@@ -513,7 +539,7 @@ onMounted(() => {
         />
       </template>
       <template #my>
-        <SideBarMyTab />
+        <SideBarMyTab ref="sideBarMyTabRef" />
       </template>
     </SideBar>
 

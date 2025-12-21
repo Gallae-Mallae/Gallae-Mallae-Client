@@ -1,5 +1,5 @@
 <template>
-    <div class="place-card">
+    <div class="place-card" @click="$emit('click', place.id)">
         <div class="card-image">
             <img :src="place.imageUrl" :alt="place.title" loading="lazy" />
         </div>
@@ -25,9 +25,9 @@
                     {{ place.likes }}
                 </button>
 
+                <!-- 저장 버튼 (항상 일반 상태로 표시) -->
                 <button class="meta-item bookmark-toggle" @click.stop="$emit('mark', place.id)">
-                    <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small"
-                        :class="{ 'icon-marked': place.isMarked }" />
+                    <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small" />
                 </button>
 
                 <span class="meta-item share-action" @click.stop="$emit('share', place.id)">
@@ -39,6 +39,11 @@
         <div class="category-tag" :style="tagInlineStyle">
             {{ place.categoryName }}
         </div>
+
+        <!-- 삭제 버튼 (크기 및 불투명도 상향) -->
+        <button v-if="showDelete" class="card-delete-btn" @click.stop="$emit('delete', place.id)" title="폴더에서 삭제">
+            <img src="@/assets/icons/ic_close.png" alt="삭제" />
+        </button>
     </div>
 </template>
 
@@ -48,12 +53,13 @@ import type { PlaceCardDTO } from '@/types/sidebar';
 import { getCategoryVarName } from '@/utils/categoryMap';
 import { useLikeStore } from '@/stores/like';
 
-const emit = defineEmits(['mark', 'share', 'click', 'like'])
+const emit = defineEmits(['mark', 'share', 'click', 'like', 'delete'])
 const likeStore = useLikeStore();
 
 // Props 정의
 const props = defineProps<{
-    place: PlaceCardDTO
+    place: PlaceCardDTO,
+    showDelete?: boolean
 }>();
 
 const titleContainer = ref<HTMLElement | null>(null);
@@ -63,6 +69,10 @@ let resizeObserver: ResizeObserver | null = null;
 
 const isLiked = computed(() => {
     return likeStore.isLiked(Number(props.place.id));
+});
+
+const isMarked = computed(() => {
+    return props.place.isMarked;
 });
 
 const checkOverflow = async () => {
@@ -251,9 +261,6 @@ const tagInlineStyle = computed(() => {
     /* 빨간색 필터 */
     filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(1000%);
 }
-.icon-marked {
-    /* 북마크 색상 필터 (필요 시) */
-}
 
 .category-tag {
     position: absolute;
@@ -270,5 +277,38 @@ const tagInlineStyle = computed(() => {
 
     color: var(--category-tag-color-text);
     user-select: none;
+}
+
+.card-delete-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: #ffffff;
+    border: 1px solid #000000;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.card-delete-btn:hover {
+    background: #000000;
+    transform: scale(1.1);
+}
+
+.card-delete-btn:hover img {
+    filter: brightness(0) invert(1); /* 호버 시 아이콘 흰색으로 */
+}
+
+.card-delete-btn img {
+    width: 10px;
+    height: 10px;
+    filter: brightness(0); /* 기본 검정색 */
 }
 </style>

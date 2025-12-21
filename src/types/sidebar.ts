@@ -41,3 +41,18 @@ export interface PlaceFolderDTO {
     color: string;
     placeCount: number;
 }
+
+export interface PlaceFolderResponse {
+  placeFolderId: number;
+  name: string;
+  color: string;
+  counts: number;
+}
+
+export interface AttractionInFolder {
+  attractionId: number;
+  title: string;
+  address: string;
+  imageUrl: string;
+  likeCount: number;
+}

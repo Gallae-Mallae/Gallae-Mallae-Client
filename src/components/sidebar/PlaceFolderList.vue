@@ -9,7 +9,8 @@
 
         <div v-else class="folder-grid">
             <PlaceFolder v-for="folder in folders" :key="folder.id" :folder="folder"
-                @folder-click="$emit('folderClick', folder.id)" />
+                @folder-click="$emit('folderClick', folder.id)"
+                @delete="$emit('delete', $event)" />
         </div>
     </div>
 </template>
@@ -24,7 +25,7 @@ defineProps<{
     loading: boolean;
 }>();
 
-defineEmits(['folderClick']); 
+defineEmits(['folderClick', 'delete']); 
 </script>
 
 <style scoped>
