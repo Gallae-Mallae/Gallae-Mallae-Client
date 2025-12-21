@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import type { UserDTO } from "@/types/user";
+import { useLikeStore } from "./like";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -21,11 +22,19 @@ export const useAuthStore = defineStore("auth", {
     setUser(userData: UserDTO) {
       this.user = userData;
       this.isAuthenticated = true;
+
+      // 좋아요 스토어 동기화
+      const likeStore = useLikeStore();
+      likeStore.fetchMyLikes();
     },
 
     logout() {
         this.user = null;
         this.isAuthenticated = false;
+
+        // 좋아요 스토어 비우기
+        const likeStore = useLikeStore();
+        likeStore.clearLikes();
     }
   },
 });

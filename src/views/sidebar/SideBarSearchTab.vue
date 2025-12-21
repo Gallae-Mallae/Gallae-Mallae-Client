@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { ref, defineExpose, watch, nextTick } from 'vue';
+import { ref, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
+import AttractionDetailModal from '@/components/sidebar/AttractionDetailModal.vue';
 import type { PlaceCardDTO, SearchData } from '@/types/sidebar';
+import { getSidebarAttractions, getAttractionDetail, toggleLike, type SidebarAttractionParams, type AttractionDetailResponse } from '@/api/attraction';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
-import { getSidebarAttractions, type SidebarAttractionParams } from '@/api/attraction';
+import { useLikeStore } from '@/stores/like';
+import { useAuthStore } from '@/stores/auth';
 import image from '@/assets/images/example_place.png';
+
+const likeStore = useLikeStore();
+const authStore = useAuthStore();
+const router = useRouter();
 
 // Props 정의
 const props = defineProps<{
@@ -14,7 +22,7 @@ const props = defineProps<{
 
 // Emits 정의
 const emit = defineEmits<{
-    (e: 'map-highlight', placeId: string, coords: { lat: number, lng: number }): void;
+    (e: 'map-highlight', placeId: string, coords: { lat: number, lng: number, level?: number }): void;
     (e: 'mark-action', placeId: string): void;
     (e: 'state-change', hasSearched: boolean): void;
     (e: 'search-request', data: SearchData): void;
@@ -22,11 +30,16 @@ const emit = defineEmits<{
 }>();
 
 // 상태 관리
-const loading = ref(false); // 초기 로딩 (리스트 전체 교체)
-const isLoadMore = ref(false); // 추가 로딩 (하단 스피너)
+const loading = ref(false); 
+const isLoadMore = ref(false); 
 const hasSearched = ref(false);
-const searchResults = ref<PlaceCardDTO[]>([]); // 검색 결과 (또는 초기 추천)
+const searchResults = ref<PlaceCardDTO[]>([]); 
 const searchFormRef = ref<InstanceType<typeof SearchForm> | null>(null);
+
+// 모달 관련 상태
+const isModalOpen = ref(false);
+const modalLoading = ref(false);
+const selectedDetail = ref<AttractionDetailResponse | null>(null);
 
 // 페이지네이션 상태
 const page = ref(0);
@@ -38,7 +51,6 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const fetchSidebarData = async (loadMore: boolean = false) => {
     if (!currentBounds.value) return;
     
-    // 로딩 상태 처리
     if (loadMore) {
         if (isLoadMore.value || loading.value) return;
         isLoadMore.value = true;
@@ -73,16 +85,14 @@ const fetchSidebarData = async (loadMore: boolean = false) => {
             longitude: item.longitude,
             categoryCode: item.contentTypeId,
             categoryName: getCategoryDisplayName(item.contentTypeId),
-            likes: 0,
-            isLiked: false,
+            likes: item.likeCount || 0,
+            isLiked: likeStore.isLiked(item.attractionId),
             isMarked: false,
         }));
 
         if (loadMore) {
-            // 기존 데이터 유지, 새 데이터 추가
             searchResults.value = [...searchResults.value, ...newItems];
         } else {
-            // 데이터 교체
             searchResults.value = newItems;
         }
 
@@ -107,10 +117,6 @@ const handleSearch = async (data: SearchData) => {
 
 const handleReset = () => {
     hasSearched.value = false;
-    // 초기화 시 리스트를 비울지, 아니면 초기 추천 상태로 돌아갈지는 정책 결정 필요
-    // 여기서는 일단 비움 (Search.vue에서 bounds와 함께 다시 호출해주지 않는 이상)
-    // 하지만 "초기상태"로 돌아가려면 Search.vue에서 reset-request 처리 시 
-    // 현재 bounds로 다시 searchByBounds(..., isInitial=true)를 호출해야 함.
     searchResults.value = [];
     currentBounds.value = null;
     currentFilters.value = {};
@@ -119,8 +125,6 @@ const handleReset = () => {
     emit('reset-request');
 };
 
-// 부모 컴포넌트(Search.vue)에서 호출할 수 있는 함수
-// isInitial: true이면 "추천 장소" 모드(hasSearched=false), false이면 "검색 결과" 모드
 const searchByBounds = async (bounds: any, filters: any = {}, isInitial: boolean = false) => {
     hasSearched.value = !isInitial;
     currentBounds.value = bounds;
@@ -135,7 +139,6 @@ const searchByBounds = async (bounds: any, filters: any = {}, isInitial: boolean
     await fetchSidebarData(false);
 };
 
-// 스크롤 핸들러 (무한 스크롤)
 const handleScroll = (e: Event) => {
     const target = e.target as HTMLElement;
     if (!target) return;
@@ -156,12 +159,84 @@ const getCurrentSearchData = (): SearchData | null => {
     return null;
 };
 
-const handleMapHighlight = (placeId: string, coords: { lat: number, lng: number }) => {
-    emit('map-highlight', placeId, coords);
+const openDetailModal = async (placeId: string) => {
+    isModalOpen.value = true;
+    modalLoading.value = true;
+    selectedDetail.value = null;
+
+    try {
+        const detail = await getAttractionDetail(Number(placeId));
+        selectedDetail.value = detail;
+    } catch (error) {
+        console.error("Failed to fetch attraction detail:", error);
+        alert("상세 정보를 불러오는데 실패했습니다. 메인 페이지로 돌아갑니다.");
+        isModalOpen.value = false;
+        router.push('/');
+    } finally {
+        modalLoading.value = false;
+    }
+};
+
+const handleItemClick = (placeId: string, coords: { lat: number, lng: number }) => {
+    openDetailModal(placeId);
+};
+
+const handleShowOnMap = (detail: AttractionDetailResponse) => {
+    emit('map-highlight', String(detail.attractionId), { 
+        lat: detail.latitude, 
+        lng: detail.longitude,
+        level: 2
+    });
 };
 
 const handleMarkAction = (placeId: string) => {
     emit('mark-action', placeId);
+};
+
+const handleLikeAction = (placeId: string) => {
+    if (!authStore.isLoggedIn) {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+
+    const item = searchResults.value.find(p => p.id === placeId);
+    if (!item) return;
+
+    const wasLiked = item.isLiked;
+    likeStore.toggleLikeState(Number(placeId));
+    item.isLiked = !wasLiked;
+    item.likes += wasLiked ? -1 : 1;
+
+    toggleLike(Number(placeId)).catch(err => {
+        console.error("좋아요 토글 API 실패 (사이드바):", err);
+        likeStore.toggleLikeState(Number(placeId));
+        item.isLiked = wasLiked;
+        item.likes += wasLiked ? -1 : 1;
+        alert("좋아요 처리에 실패했습니다.");
+    });
+};
+
+const handleModalLike = (placeId: number) => {
+    const index = searchResults.value.findIndex(p => p.id === String(placeId));
+    if (index === -1) return;
+
+    const item = searchResults.value[index];
+    
+    // 모달에서 이미 스토어 상태를 변경했으므로, 현재 스토어 상태를 기준으로 목록의 수치를 동기화
+    const isNowLiked = likeStore.isLiked(placeId);
+    
+    // 상태가 다를 때만 업데이트 (중복 호출 방지)
+    if (item.isLiked !== isNowLiked) {
+        // 숫자 동기화
+        const newLikes = item.likes + (isNowLiked ? 1 : -1);
+        
+        // 아이템 교체로 반응성 강제 트리거 (Props 변경 감지 확실하게)
+        searchResults.value[index] = {
+            ...item,
+            isLiked: isNowLiked,
+            likes: newLikes
+        };
+    }
 };
 
 watch(hasSearched, (newVal) => {
@@ -170,7 +245,8 @@ watch(hasSearched, (newVal) => {
 
 defineExpose({
     searchByBounds,
-    getCurrentSearchData
+    getCurrentSearchData,
+    openDetailModal
 });
 
 </script>
@@ -181,20 +257,30 @@ defineExpose({
         <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
 
         <div class="search-results-area" ref="scrollContainer" @scroll="handleScroll">
-            <!-- loading은 초기 로딩일 때만 true -->
             <PlaceCardList 
                 :places="searchResults" 
                 :loading="loading"
                 :has-searched="hasSearched" 
-                @item-click="handleMapHighlight" 
+                @item-click="handleItemClick" 
                 @mark="handleMarkAction" 
+                @like="handleLikeAction"
             />
             
-            <!-- 추가 로딩 인디케이터 -->
             <div v-if="isLoadMore" class="loading-more">
                 불러오는 중...
             </div>
         </div>
+
+        <AttractionDetailModal
+            :isVisible="isModalOpen"
+            :loading="modalLoading"
+            :detail="selectedDetail"
+            @close="isModalOpen = false"
+            @show-on-map="handleShowOnMap"
+            @mark="(id) => handleMarkAction(String(id))"
+            @share="(id) => console.log('Share attraction:', id)"
+            @like="handleModalLike"
+        />
 
     </div>
 </template>
@@ -208,7 +294,7 @@ defineExpose({
 
 .search-results-area {
     flex-grow: 1;
-    padding: 0 15px 15px;
+    padding: 0 15px 40px;
     overflow-y: auto;
 }
 

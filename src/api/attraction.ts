@@ -56,6 +56,7 @@ export interface SidebarAttractionItem {
   address: string;
   imageUrl: string;
   contentTypeId: number;
+  likeCount: number;
 }
 
 export interface SidebarListResponse {
@@ -75,3 +76,35 @@ export const getSidebarAttractions = async (params: SidebarAttractionParams): Pr
   });
   return data;
 };
+
+export interface AttractionDetailResponse {
+  attractionId: number;
+  title: string;
+  address: string;
+  imageUrl: string;
+  latitude: number;
+  longitude: number;
+  viewCount: number;
+  likeCount: number;
+  overview: string;
+  contentTypeId: number;
+}
+
+export const getAttractionDetail = async (attractionId: number): Promise<AttractionDetailResponse> => {
+  const { data } = await axiosInstance.get<AttractionDetailResponse>(`/attractions/map/${attractionId}`);
+  return data;
+};
+
+// --- 좋아요 관련 API ---
+
+// 내 좋아요 ID 목록 조회
+export const getMyLikedIds = async (): Promise<number[]> => {
+    const { data } = await axiosInstance.get<number[]>('/attractions/likes/my');
+    return data;
+};
+
+// 좋아요 토글 (등록/취소)
+export const toggleLike = async (attractionId: number): Promise<void> => {
+    await axiosInstance.post(`/attractions/${attractionId}/likes`);
+};
+

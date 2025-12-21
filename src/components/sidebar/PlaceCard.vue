@@ -19,18 +19,18 @@
             </p>
 
             <div class="place-meta">
-                <span class="meta-item like-count">
+                <button class="meta-item like-count" @click.stop="$emit('like', place.id)">
                     <img src="@/assets/icons/ic_heart.png" alt="좋아요" class="icon-small"
-                        :class="{ 'icon-red': place.isLiked }" />
+                        :class="{ 'icon-red': isLiked }" />
                     {{ place.likes }}
-                </span>
+                </button>
 
-                <span class="meta-item bookmark-toggle" @click.stop="emit('mark', place.id)">
+                <button class="meta-item bookmark-toggle" @click.stop="$emit('mark', place.id)">
                     <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small"
                         :class="{ 'icon-marked': place.isMarked }" />
-                </span>
+                </button>
 
-                <span class="meta-item share-action" @click.stop="emit('share', place.id)">
+                <span class="meta-item share-action" @click.stop="$emit('share', place.id)">
                     <img src="@/assets/icons/ic_share.png" alt="공유" class="icon-small" />
                 </span>
             </div>
@@ -46,8 +46,10 @@
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import type { PlaceCardDTO } from '@/types/sidebar';
 import { getCategoryVarName } from '@/utils/categoryMap';
+import { useLikeStore } from '@/stores/like';
 
-const emit = defineEmits(['mark', 'share', 'click'])
+const emit = defineEmits(['mark', 'share', 'click', 'like'])
+const likeStore = useLikeStore();
 
 // Props 정의
 const props = defineProps<{
@@ -58,6 +60,10 @@ const titleContainer = ref<HTMLElement | null>(null);
 const titleText = ref<HTMLElement | null>(null);
 const isOverflowing = ref(false);
 let resizeObserver: ResizeObserver | null = null;
+
+const isLiked = computed(() => {
+    return likeStore.isLiked(Number(props.place.id));
+});
 
 const checkOverflow = async () => {
     await nextTick();
@@ -217,6 +223,15 @@ const tagInlineStyle = computed(() => {
     align-items: center;
     margin-right: 8px;
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.meta-item:hover {
+    background-color: #f0f0f0;
 }
 
 .meta-item i {
@@ -230,6 +245,14 @@ const tagInlineStyle = computed(() => {
 
 .like-count {
     color: var(--color-red-primary);
+}
+
+.icon-red {
+    /* 빨간색 필터 */
+    filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(1000%);
+}
+.icon-marked {
+    /* 북마크 색상 필터 (필요 시) */
 }
 
 .category-tag {

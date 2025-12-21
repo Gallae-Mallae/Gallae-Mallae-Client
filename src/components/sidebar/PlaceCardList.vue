@@ -28,6 +28,7 @@
         @item-click="handleItemClick"
         @mark="handleMarkAction"
         @share="handleShareAction"
+        @like="handleLikeAction"
       />
     </div>
     
@@ -49,7 +50,7 @@ const props = defineProps<{
     hasSearched: boolean;
 }>();
 
-const emit = defineEmits(['itemClick', 'mark', 'share']);
+const emit = defineEmits(['itemClick', 'mark', 'share', 'like']);
 
 const handleItemClick = (placeId: string, coords: { lat: number, lng: number }) => {
     console.log(`[PlaceCardList] 아이템 클릭: ${placeId}`);
@@ -66,6 +67,10 @@ const handleShareAction = (placeId: string) => {
     emit('share', placeId); 
 };
 
+const handleLikeAction = (placeId: string) => {
+    console.log(`[PlaceCardList] 좋아요 이벤트 수신: ${placeId}`);
+    emit('like', placeId);
+};
 </script>
 
 <style scoped>

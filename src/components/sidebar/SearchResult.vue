@@ -1,6 +1,6 @@
 <template>
     <div class="search-result-item" @click="handlePlaceClick">
-        <PlaceCard :place="place" @mark="handleMark" @share="handleShare" />
+        <PlaceCard :place="place" @mark="handleMark" @share="handleShare" @like="handleLike" />
     </div>
 </template>
 
@@ -13,7 +13,7 @@ const props = defineProps<{
     place: PlaceCardDTO
 }>();
 
-const emit = defineEmits(['itemClick', 'mark', 'share']);
+const emit = defineEmits(['itemClick', 'mark', 'share', 'like']);
 
 /* 장소 블록 전체 클릭 시 실행되는 로직 */
 const handlePlaceClick = () => {
@@ -33,6 +33,11 @@ const handleMark = (placeId: string) => {
 const handleShare = (placeId: string) => {
     console.log(`[SearchResult] 공유 요청: ${placeId}`);
     emit('share', placeId);
+};
+
+const handleLike = (placeId: string) => {
+    console.log(`[SearchResult] 좋아요 요청: ${placeId}`);
+    emit('like', placeId);
 };
 </script>
 

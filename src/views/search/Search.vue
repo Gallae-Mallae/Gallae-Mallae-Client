@@ -89,68 +89,184 @@ const drawMarkers = (data: MapAttractionResponse[]) => {
 
     if (!mapInstance.value) return;
 
+    const serverClusters: MapAttractionResponse[] = [];
+    const singlePlaces: MapAttractionResponse[] = [];
+
+    // 1. 데이터 분류
     data.forEach(item => {
+        if (item.count > 1) serverClusters.push(item);
+        else singlePlaces.push(item);
+    });
+
+    // 2. 서버 사이드 클러스터 그리기 (기존 로직)
+    serverClusters.forEach(item => {
         const position = new (window as any).kakao.maps.LatLng(item.latitude, item.longitude);
+        const content = document.createElement('div');
+        content.className = 'cluster-overlay';
+        content.innerHTML = `<div class="cluster-count">${item.count}</div>`;
 
-        if (item.count > 1) {
-            // 클러스터 (커스텀 오버레이) - DOM Element 생성 방식 사용
+        content.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!mapInstance.value) return;
+
+            console.log(`[Cluster] Clicked! Snapping to ${item.latitude}, ${item.longitude}`);
+            isPanningToCluster.value = true;
+            mapInstance.value.setCenter(position);
+
+            const currentLevel = mapInstance.value.getLevel();
+            const newLevel = Math.max(1, currentLevel - 2);
+
+            setTimeout(() => {
+                mapInstance.value.setLevel(newLevel, { animate: true });
+            }, 50);
+
+            setTimeout(() => {
+                console.log("[Cluster] Animation finished. Re-fetching...");
+                isPanningToCluster.value = false;
+                fetchMapMarkers();
+            }, 800);
+        });
+        
+        const overlay = new (window as any).kakao.maps.CustomOverlay({
+            position: position,
+            content: content,
+            xAnchor: 0.5,
+            yAnchor: 0.5,
+            clickable: false
+        });
+        
+        overlay.setMap(mapInstance.value);
+        customOverlays.value.push(overlay);
+    });
+
+    // 3. 개별 장소 좌표 그룹핑 (겹침 확인)
+    const groupedPlaces = new Map<string, MapAttractionResponse[]>();
+    singlePlaces.forEach(item => {
+        const key = `${item.latitude},${item.longitude}`;
+        if (!groupedPlaces.has(key)) groupedPlaces.set(key, []);
+        groupedPlaces.get(key)!.push(item);
+    });
+
+    // 4. 그룹핑된 장소 그리기
+    groupedPlaces.forEach((items, key) => {
+        const firstItem = items[0]!;
+        const position = new (window as any).kakao.maps.LatLng(firstItem.latitude, firstItem.longitude);
+
+        if (items.length === 1) {
+            // [단일 장소] 빨간 핀 마커
+            const item = items[0]!;
             const content = document.createElement('div');
-            content.className = 'cluster-overlay';
-            content.innerHTML = `<div class="cluster-count">${item.count}</div>`;
-
-            // 클릭 이벤트: 중심 이동 + 줌 인 + 재검색
-            content.addEventListener('click', (e) => {
-                e.stopPropagation(); // 이벤트 전파 방지
-                if (!mapInstance.value) return;
-
-                console.log(`[Cluster] Clicked! Snapping to ${item.latitude}, ${item.longitude}`);
-
-                // 1. 플래그 설정 (bounds 체크 방지)
-                isPanningToCluster.value = true;
-
-                // 2. 먼저 중심을 강제로 이동 (애니메이션 없이 정확한 위치로)
-                mapInstance.value.setCenter(position);
-
-                // 3. 그 다음 줌 레벨 변경 (애니메이션)
-                const currentLevel = mapInstance.value.getLevel();
-                const newLevel = Math.max(1, currentLevel - 2); // 최소 레벨 1
-
-                // 줌 변경 시점
-                setTimeout(() => {
-                    mapInstance.value.setLevel(newLevel, { animate: true });
-                }, 50);
-
-                // 4. 애니메이션 종료 예상 시점 후 API 재호출
-                // (idle 이벤트가 줌 애니메이션 중에 여러 번 튈 수 있어 setTimeout이 안전)
-                setTimeout(() => {
-                    console.log("[Cluster] Animation finished. Re-fetching...");
-                    isPanningToCluster.value = false;
-                    fetchMapMarkers();
-                }, 800); // 줌 애니메이션 시간 고려
-            });
+            content.className = 'custom-marker-container';
             
+            content.innerHTML = `
+                <img src="data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2230%22%20height%3D%2242%22%20viewBox%3D%220%200%2030%2042%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M15%200C6.71573%200%200%206.71573%200%2015C0%2026.25%2015%2042%2015%2042C15%2042%2030%2026.25%2030%2015C30%206.71573%2023.2843%200%2015%200Z%22%20fill%3D%22%23EA4335%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23960F0F%22%2F%3E%3C%2Fsvg%3E" class="marker-icon" alt="marker">
+                <span class="marker-title">${item.title}</span>
+            `;
+
+            content.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const placeId = String((item as any).attractionId || item.attrId);
+                if (placeId !== 'undefined' && placeId !== 'NaN' && sideBarSearchTabRef.value) {
+                    sideBarSearchTabRef.value.openDetailModal(placeId);
+                }
+            });
+
             const overlay = new (window as any).kakao.maps.CustomOverlay({
                 position: position,
                 content: content,
                 xAnchor: 0.5,
-                yAnchor: 0.5,
-                clickable: false // 중요: false로 설정해야 DOM의 hover/click 이벤트가 정상 작동함
+                yAnchor: 1.0,
+                clickable: true
             });
-            
+
             overlay.setMap(mapInstance.value);
             customOverlays.value.push(overlay);
 
         } else {
-            // 단일 마커
-            const marker = new (window as any).kakao.maps.Marker({
+            // [중복 장소] 묶음 마커 (+N)
+            const content = document.createElement('div');
+            content.className = 'bundle-marker-container';
+            
+            // 목록 아이템 생성
+            const listItemsHtml = items.map(item => `
+                <div class="bundle-item" data-id="${(item as any).attractionId || item.attrId}">
+                    ${item.title}
+                </div>
+            `).join('');
+
+            content.innerHTML = `
+                <div class="bundle-badge">+${items.length}</div>
+                <div class="bundle-list" style="display: none;">
+                    ${listItemsHtml}
+                </div>
+            `;
+
+            // 오버레이 먼저 생성 (이벤트 리스너에서 참조하기 위해)
+            const overlay = new (window as any).kakao.maps.CustomOverlay({
                 position: position,
-                title: item.title // hover 시 타이틀 표시
+                content: content,
+                xAnchor: 0.5,
+                yAnchor: 1.0,
+                clickable: true,
+                zIndex: 3000
             });
 
-            marker.setMap(mapInstance.value);
-            markers.value.push(marker);
-            
-            // TODO: 마커 클릭 이벤트 등 추가 가능
+            // 클릭 이벤트 (배지 클릭 시 리스트 토글 및 zIndex 상향)
+            const badge = content.querySelector('.bundle-badge');
+            const list = content.querySelector('.bundle-list') as HTMLElement;
+
+            if (badge && list) {
+                badge.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // 다른 열려있는 리스트 닫기 및 zIndex 초기화
+                    // (전역 관리가 없으므로 간단히 DOM 조작은 어렵고, 현재 열린 것만 처리)
+                    // 완벽하게 하려면 모든 overlay를 순회해야 하나, 여기선 '나를 최상위로' 만으로도 충분할 수 있음.
+                    // 더 좋은 방법: customOverlays 배열 활용
+                    customOverlays.value.forEach(ov => {
+                        if (ov !== overlay) {
+                            // ov.getZIndex()는 카카오맵 API에 없을 수 있으므로 안전하게 처리
+                            // ov.setZIndex(3000); // 다른 번들은 3000으로 리셋
+                        }
+                    });
+                    
+                    // 리스트 토글
+                    const isOpening = list.style.display === 'none';
+                    document.querySelectorAll('.bundle-list').forEach(el => {
+                        (el as HTMLElement).style.display = 'none';
+                    });
+                    
+                    if (isOpening) {
+                        list.style.display = 'block';
+                        overlay.setZIndex(9999); // [핵심] 리스트 열릴 때 최상위로
+                    } else {
+                        list.style.display = 'none';
+                        overlay.setZIndex(3000); // 닫히면 원래대로
+                    }
+                });
+
+                // [중요] 리스트 내에서 스크롤 및 드래그 시 지도 이벤트 전파 방지
+                const stopMapEvents = (e: Event) => e.stopPropagation();
+                list.addEventListener('wheel', stopMapEvents);
+                list.addEventListener('mousedown', stopMapEvents);
+                list.addEventListener('touchstart', stopMapEvents);
+            }
+
+            // 리스트 아이템 클릭 (상세 모달 열기)
+            content.querySelectorAll('.bundle-item').forEach(itemEl => {
+                itemEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const placeId = (e.target as HTMLElement).dataset.id;
+                    if (placeId && sideBarSearchTabRef.value) {
+                        sideBarSearchTabRef.value.openDetailModal(placeId);
+                        list.style.display = 'none'; // 선택 후 닫기
+                        overlay.setZIndex(3000); // 선택 후 zIndex 복구
+                    }
+                });
+            });
+
+            overlay.setMap(mapInstance.value);
+            customOverlays.value.push(overlay);
         }
     });
 };
@@ -188,11 +304,22 @@ const handleSidebarSearchRequest = (data: SearchData) => {
 const handleReSearchInMap = async () => {
   if (!mapInstance.value || !sideBarSearchTabRef.value) return;
   
+  // [중요] 검색 폼의 현재 상태 가져오기
+  const currentSearchData = sideBarSearchTabRef.value.getCurrentSearchData();
+  
+  // 유효성 검사: 조건이 하나라도 있는지 확인
+  const hasKeyword = currentSearchData?.query && currentSearchData.query.trim() !== '';
+  const hasSido = currentSearchData?.sidoCode;
+  const hasGugun = currentSearchData?.gugunCode;
+  const hasCategory = selectedCategory.value !== null;
+
+  if (!hasKeyword && !hasSido && !hasGugun && !hasCategory) {
+      alert("검색어, 지역 또는 카테고리를 하나 이상 선택해주세요.");
+      return;
+  }
+
   const bounds = mapInstance.value.getBounds();
   showReSearchButton.value = false; // 버튼 숨기기
-
-  // [중요] 검색 폼의 현재 상태 가져오기 (입력만 하고 엔터 안 친 상태 반영)
-  const currentSearchData = sideBarSearchTabRef.value.getCurrentSearchData();
   
   if (currentSearchData) {
       currentFilters.value = {
@@ -228,11 +355,22 @@ const handleSearchStateChange = (hasSearched: boolean) => {
     }
 };
 
-const handleMapHighlight = (placeId: string, coords: { lat: number, lng: number }) => {
+const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: number, level?: number }) => {
   console.log(`[Search] 지도 하이라이트: ${placeId} (${coords.lat}, ${coords.lng})`);
   if (mapInstance.value) {
     const moveLatLon = new (window as any).kakao.maps.LatLng(coords.lat, coords.lng);
-    mapInstance.value.panTo(moveLatLon);
+    
+    // 줌 레벨 정보가 있으면 변경
+    if (coords.level) {
+        mapInstance.value.setLevel(coords.level);
+    }
+    
+    // panTo는 애니메이션 때문에 bounds 업데이트 타이밍이 꼬일 수 있어 setCenter 사용
+    mapInstance.value.setCenter(moveLatLon);
+
+    // 이동한 위치 기준 마커 새로고침 (클러스터 해제 및 상세 마커 표시)
+    showReSearchButton.value = false; // 재검색 버튼 숨김
+    await fetchMapMarkers();
   }
 };
 
@@ -448,6 +586,116 @@ onMounted(() => {
 
 .cluster-count {
     /* 중앙 정렬됨 */
+}
+
+/* 단일 마커 커스텀 스타일 */
+.custom-marker-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    width: fit-content; /* 내용물에 딱 맞게 너비 조절 */
+    /* 텍스트가 겹치지 않게 z-index 관리 필요시 설정 */
+}
+
+.custom-marker-container:hover {
+    z-index: 1000; /* 호버 시 맨 앞으로 */
+}
+
+.marker-icon {
+    width: 18px; /* 마커 크기 더 축소 */
+    height: auto; /* 비율 유지 */
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); /* 그림자 효과 조절 */
+    transition: transform 0.2s;
+}
+
+.custom-marker-container:hover .marker-icon {
+    transform: scale(1.2) translateY(-2px); /* 호버 시 약간 강조 */
+}
+
+.marker-title {
+    margin-top: 4px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 겹친 마커 (Bundle) 스타일 */
+.bundle-marker-container {
+    position: relative;
+    cursor: pointer;
+    z-index: 3000; /* 일반 마커보다 위 */
+}
+
+.bundle-badge {
+    background: #EA4335; /* 빨간색으로 통일 */
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    border: 2px solid white;
+    transition: transform 0.2s;
+}
+
+.bundle-badge:hover {
+    transform: scale(1.1);
+    background: #d33426;
+}
+
+.bundle-list {
+    position: absolute;
+    bottom: 40px; /* 마커 위에 표시 */
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    min-width: 160px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 4000; /* 리스트는 무조건 최상위 */
+    padding: 0;
+    /* 스크롤바 스타일링 (선택사항) */
+    scrollbar-width: thin;
+}
+
+.bundle-item {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bundle-item:last-child {
+    border-bottom: none;
+}
+
+.bundle-item:hover {
+    background-color: #f5f5f5;
+    color: #EA4335; /* 호버 색상도 빨간색으로 */
+    font-weight: 600;
 }
 </style>
 

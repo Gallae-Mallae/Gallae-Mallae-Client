@@ -1,0 +1,68 @@
+[백엔드 수정 가이드 - 크롤링 성공률 향상 (User-Agent 추가)]
+
+** 중요: User-Agent 헤더를 추가해야 네이버가 정상적인 페이지를 보여줍니다. **
+
+1. SecurityConfig.java (권한 허용 확인)
+--------------------------------------------------
+.requestMatchers("/api/attractions/map/*/crawl").permitAll()
+
+
+2. AttractionService.java (전체 교체)
+--------------------------------------------------
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+public String crawlOverviewOnly(Integer attractionId) {
+    Attraction attraction = attractionRepository.findById(attractionId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid Id: " + attractionId));
+
+    String keyword = attraction.getTitle();
+    if (keyword != null) {
+        // 특수문자 및 괄호 제거
+        keyword = keyword.replaceAll("[<>\[\](){}]", " ").replaceAll("\s+", " ").trim();
+    }
+    
+    if (keyword == null || keyword.isEmpty()) {
+        keyword = attraction.getTitle();
+    }
+
+    try {
+        // [핵심] userAgent를 설정해야 봇 차단을 피하고 PC 화면을 받을 수 있습니다.
+        Document doc = Jsoup.connect("https://search.naver.com/search.naver")
+                .data("query", keyword)
+                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36")
+                .timeout(5000)
+                .get();
+        
+        String overview = "";
+        
+        // 우선순위별 선택자 (지식백과 -> 플레이스 -> 일반 웹 문서 요약)
+        String[] selectors = {
+            ".nkw_abstract",          // 지식백과 요약
+            ".detail_info",           // 전시/공연 정보
+            ".txt_dsc",               // 플레이스/기타 설명
+            ".api_txt_lines.desc",    // 통합검색 결과 요약
+            ".dsc_rect",              // 구형 스니펫
+            ".intro_box .txt"         // 일부 소개글
+        };
+        
+        for (String selector : selectors) {
+            Element el = doc.selectFirst(selector);
+            if (el != null && !el.text().trim().isEmpty()) {
+                overview = el.text();
+                break; // 찾았으면 중단
+            }
+        }
+        
+        if (overview.isEmpty()) {
+            return "상세 정보를 찾을 수 없습니다.";
+        }
+        return overview;
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "정보를 가져오는 중 오류가 발생했습니다: " + e.getMessage();
+    }
+}
