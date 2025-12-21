@@ -3,6 +3,7 @@ import { ref, defineExpose, watch, nextTick } from 'vue';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
 import type { PlaceCardDTO, SearchData } from '@/types/sidebar';
+import { getCategoryDisplayName } from '@/utils/categoryMap';
 import { getSidebarAttractions, type SidebarAttractionParams } from '@/api/attraction';
 import image from '@/assets/images/example_place.png';
 
@@ -70,8 +71,8 @@ const fetchSidebarData = async (loadMore: boolean = false) => {
             address: item.address || "주소 없음",
             latitude: item.latitude,
             longitude: item.longitude,
-            categoryCode: 99, 
-            categoryName: "기타",
+            categoryCode: item.contentTypeId,
+            categoryName: getCategoryDisplayName(item.contentTypeId),
             likes: 0,
             isLiked: false,
             isMarked: false,

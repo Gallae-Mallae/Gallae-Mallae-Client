@@ -55,6 +55,7 @@ export interface SidebarAttractionItem {
   longitude: number;
   address: string;
   imageUrl: string;
+  contentTypeId: number;
 }
 
 export interface SidebarListResponse {
