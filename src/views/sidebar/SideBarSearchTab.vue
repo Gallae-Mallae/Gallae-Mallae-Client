@@ -5,10 +5,7 @@
 
         <div v-if="isPlanPage" class="drag-guide-container">
             <div class="guide-item memo-guide" draggable="true" @dragstart="handleMemoDragStart">
-                <p>📝 메모를 드래그하여 일정표에 추가하세요.</p>
-            </div>
-            <div class="guide-item place-guide">
-                <p>💡 장소를 드래그하여 일정표에 추가하세요.</p>
+                <p>📝 이곳을 드래그하여 일정표에 메모를 추가하세요.</p>
             </div>
         </div>
 
@@ -122,16 +119,13 @@ onMounted(() => {
 
 const handleMemoDragStart = (e: DragEvent) => {
     if (e.dataTransfer) {
-        // 1. 드래그 이미지 설정 (선택 사항)
         e.dataTransfer.setDragImage(e.currentTarget as HTMLElement, 20, 20);
 
-        // 2. 'MEMO'라는 이름표를 붙여서 데이터 포장
         const memoData = {
             type: 'MEMO',
-            title: '새 메모' // 일정표에 생성될 때의 기본 이름
+            title: '' 
         };
 
-        // 3. 데이터를 'MEMO' 키로 저장
         e.dataTransfer.setData('MEMO', JSON.stringify(memoData));
         e.dataTransfer.effectAllowed = 'move';
     }
@@ -170,8 +164,8 @@ const handleMemoDragStart = (e: DragEvent) => {
 }
 
 .memo-guide:hover {
-    border-color: var(--color-primary, #4a90e2);
-    background-color: #f0f7ff;
+    border-color: var(--color-primary, #777);
+    background-color: #f4f3f3;
     color: #333;
 }
 
