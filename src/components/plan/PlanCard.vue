@@ -1,7 +1,7 @@
 <template>
     <div class="plan-card">
         <div class="plan-card-image-wrapper">
-            <img :src="plan.imageUrl" :alt="plan.title" class="plan-card-image" />
+            <img :src="plan.planImageUrl" :alt="plan.title" class="plan-card-image" />
 
             <span class="plan-edit" @click="handleEditClick">
                 <img src="@/assets/icons/ic_edit.png" alt="수정" class="icon-small" />
@@ -93,21 +93,20 @@ const handleEditClick = (event: MouseEvent) => {
     right: 10px;
     z-index: 10;
     cursor: pointer;
-    opacity: 0.0; 
+    opacity: 0.0;
     transition: opacity 0.2s ease-in-out;
 }
 
 .plan-card:hover .plan-edit {
-    opacity: 0.8; 
+    opacity: 0.8;
 }
 
 .plan-card:hover .plan-edit:hover {
-    opacity: 1.0; 
+    opacity: 1.0;
 }
 
 .icon-small {
-    width: 38px; 
+    width: 38px;
     height: 38px;
 }
-
 </style>

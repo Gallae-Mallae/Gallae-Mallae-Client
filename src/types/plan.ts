@@ -5,8 +5,9 @@ export interface PlanCardDTO {
   title: string;
   startDate: string;
   endDate: string;
-  imageUrl: string;
+  planImageUrl: string;
   isShared: boolean;
+  participants: PlanMemberDTO[];
 }
 
 export interface PlanMemberDTO {
@@ -69,6 +70,6 @@ export interface DailyScheduleDTO {
 export interface PlanDTO extends PlanCardDTO {
   ownerId: string;
   participantIds: string[];
-
+  inviteCode: string;
   dailySchedules: DailyScheduleDTO[];
 }

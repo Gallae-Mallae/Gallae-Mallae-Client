@@ -23,7 +23,7 @@ onMounted(async () => {
         const user = await fetchUser();
         // 인증 성공 시, Store에 사용자 정보 저장
         authStore.setUser(user);
-        router.replace('/test-user');
+        router.replace('/');
 
     } catch (e) {
         error.value = true;

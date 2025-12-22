@@ -11,8 +11,29 @@
 </template>
 
 <script setup lang='ts'>
+import { onMounted } from 'vue';
 import { RouterView } from 'vue-router';
 import Header from '@/components/Header.vue';
+import { useAuthStore } from '@/stores/auth';
+import { fetchUser } from '@/api/auth';
+
+const authStore = useAuthStore();
+
+onMounted(async () => {
+  // 앱 렌더링될 때, 딱 한 번 실행 (새로고침 포함)
+  try {
+    const user = await fetchUser();
+
+    if (user) {
+      authStore.setUser(user);
+    }
+  } catch (error) {
+    console.log("로그인 정보 없음 또는 세션 만료");
+    authStore.logout();
+  } finally {
+    authStore.setLoading(false);
+  }
+});
 </script>
 
 <style>
