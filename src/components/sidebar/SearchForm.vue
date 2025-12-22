@@ -96,7 +96,7 @@ defineExpose({
 
 <style scoped>
 .search-form {
-    padding: 15px;
+    padding: 15px 15px 8px 15px;
 }
 
 .address-dropdown-group {

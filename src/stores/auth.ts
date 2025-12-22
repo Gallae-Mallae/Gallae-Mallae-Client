@@ -6,39 +6,49 @@ import { fetchUser } from "@/api/auth";
 interface AuthState {
   isAuthenticated: boolean;
   user: UserDTO | null;
-  loading: boolean; // 앱 초기 로딩 시 로그인 체크 중인지 확인하는 플래그
+  // test2의 명확한 네이밍 채택
+  isInitialLoading: boolean; 
 }
 
 export const useAuthStore = defineStore("auth", {
   state: (): AuthState => ({
     isAuthenticated: false,
     user: null,
-    loading: true, // 초기값은 true로 설정하여 체크 전까지는 로딩 상태로 간주
+    isInitialLoading: true,
   }),
 
   getters: {
     isLoggedIn: (state) => state.isAuthenticated,
     currentUser: (state) => state.user,
-    isLoading: (state) => state.loading,
+    // test2의 게터 이름 사용
+    isCheckingAuth: (state) => state.isInitialLoading, 
   },
 
   actions: {
-    // 로그인 성공 시 사용자 정보를 저장하고 필요한 데이터를 로드하는 함수
+    // 로그인 성공 시 사용자 정보를 저장
     setUser(userData: UserDTO) {
       this.user = userData;
       this.isAuthenticated = true;
+      this.isInitialLoading = false;
 
-      // 사용자가 로그인되면 해당 사용자의 좋아요 목록도 자동으로 가져옴
+      // [feature/#16 기능 살림] 로그인 성공 시 내 좋아요 목록 가져오기
       const likeStore = useLikeStore();
       likeStore.fetchMyLikes();
     },
 
-    // 새로고침 시 세션을 복구하는 핵심 로직
+    // [test2 기능 살림] 로딩 상태 강제 조절
+    setLoading(value: boolean) {
+      this.isInitialLoading = value;
+    },
+
+    // [feature/#16 기능 살림] 새로고침 시 세션 복구 로직
+    // 변수명은 test2의 isInitialLoading으로 변경하여 통합
     async checkLogin() {
-        this.loading = true;
+        this.isInitialLoading = true;
         try {
             const user = await fetchUser();
             if (user) {
+                // setUser를 호출하면 좋아요 목록까지 자동으로 불러옵니다
                 this.setUser(user);
                 console.log("[AuthStore] 로그인 세션 복구 완료:", user.name);
             }
@@ -46,18 +56,19 @@ export const useAuthStore = defineStore("auth", {
             console.log("[AuthStore] 유효한 세션이 없거나 만료되었습니다.");
             this.logout();
         } finally {
-            this.loading = false;
+            this.isInitialLoading = false;
         }
     },
 
-    // 로그아웃 시 스토어의 모든 인증 상태를 초기화
+    // 로그아웃
     logout() {
-        this.user = null;
-        this.isAuthenticated = false;
+      this.user = null;
+      this.isAuthenticated = false;
+      this.isInitialLoading = false;
 
-        // 로그아웃 시 좋아요 목록도 메모리에서 삭제
-        const likeStore = useLikeStore();
-        likeStore.clearLikes();
-    }
+      // [feature/#16 기능 살림] 로그아웃 시 좋아요 목록 메모리 초기화
+      const likeStore = useLikeStore();
+      likeStore.clearLikes();
+    },
   },
 });

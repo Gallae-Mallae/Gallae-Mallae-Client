@@ -13,7 +13,6 @@ const PlanTimetable = () => import("@/views/plan/PlanTimetable.vue");
 const SearchView = () => import("@/views/search/Search.vue");
 
 const OAuthRedirectView = () => import("@/views/login/OAuthRedirect.vue");
-const TestUserView = () => import("@/views/login/TestUser.vue");
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -33,18 +32,19 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/plan",
     component: PlanView,
+    meta: { requiresAuth: true },
     children: [
       {
         path: "",
         name: "PlanList",
         component: PlanCardList,
-        meta: { title: "일정 목록" },
+        meta: { title: "일정 목록", requiresAuth: true },
       },
       {
         path: ":id",
         name: "PlanDetail",
         component: PlanTimetable,
-        meta: { title: "일정 상세" },
+        meta: { title: "일정 상세", requiresAuth: true },
         props: true,
       },
     ],
@@ -55,13 +55,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "OAuthRedirect",
     component: OAuthRedirectView,
     meta: { title: "로그인" },
-  },
-
-  {
-    path: "/test-user",
-    name: "TestUser",
-    component: TestUserView,
-    meta: { title: "유저 정보 확인 테스트" },
   },
 ];
 

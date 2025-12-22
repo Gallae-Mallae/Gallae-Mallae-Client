@@ -14,7 +14,15 @@
     </div>
 
     <div class="header-right">
-      <button class="login-button" @click="openModal">{{ strings.BUTTON_LOGIN }}</button>
+      <template v-if="!authStore.isCheckingAuth">
+        <User v-if="authStore.isLoggedIn && authStore.user" :user="authStore.user" :show-name="false"
+          @click="handleProfileClick" />
+        <button v-else class="login-button" @click="openModal">
+          {{ strings.BUTTON_LOGIN }}
+        </button>
+      </template>
+
+      <div v-else class="auth-loading-placeholder"></div>
     </div>
 
   </header>
@@ -27,7 +35,10 @@
 import { ref } from 'vue';
 import strings from '@/assets/values/strings.header.json';
 import LoginModal from '@/views/login/LoginModal.vue';
+import User from '@/components/User.vue';
+import { useAuthStore } from '@/stores/auth';
 
+const authStore = useAuthStore();
 const isModalOpen = ref(false);
 
 const openModal = () => {
@@ -36,6 +47,10 @@ const openModal = () => {
 
 const closeModal = () => {
   isModalOpen.value = false;
+};
+
+const handleProfileClick = () => {
+  // 프로필 클릭 시 처리 로직
 };
 
 </script>
@@ -79,6 +94,13 @@ const closeModal = () => {
   color: var(--color-primary-dark);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  min-width: 60px;
+  justify-content: flex-end;
+}
+
 .login-button {
   padding: 8px 16px;
   background-color: var(--color-primary-dark);
@@ -92,5 +114,10 @@ const closeModal = () => {
 
 .login-button:hover {
   background-color: var(--color-primary-dark);
+}
+
+.auth-loading-placeholder {
+  width: 70px;
+  height: 35px;
 }
 </style>

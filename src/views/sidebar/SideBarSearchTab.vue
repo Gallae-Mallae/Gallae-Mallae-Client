@@ -1,6 +1,60 @@
+<template>
+    <div class="side-bar-search-tab">
+        <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
+
+        <div v-if="isPlanPage" class="drag-guide-container">
+            <div class="guide-item memo-guide" draggable="true" @dragstart="handleMemoDragStart">
+                <p>📝 이곳을 드래그하여 일정표에 메모를 추가하세요.</p>
+            </div>
+        </div>
+
+        <div class="search-results-area" ref="scrollContainer" @scroll="handleScroll">
+            <PlaceCardList 
+                :places="searchResults" 
+                :loading="loading"
+                :has-searched="hasSearched" 
+                @item-click="handleItemClick" 
+                @mark="handleMarkAction" 
+                @like="handleLikeAction"
+            />
+            
+            <div v-if="isLoadMore" class="loading-more">
+                불러오는 중...
+            </div>
+        </div>
+
+        <AttractionDetailModal
+            :isVisible="isModalOpen"
+            :loading="modalLoading"
+            :detail="selectedDetail"
+            @close="isModalOpen = false"
+            @show-on-map="handleShowOnMap"
+            @mark="handleModalMark"
+            @share="(id) => console.log('Share attraction:', id)"
+            @like="handleModalLike"
+        />
+
+        <FolderSelectModal 
+            ref="folderSelectRef"
+            :isVisible="isFolderSelectOpen" 
+            :attractionId="selectedAttractionId"
+            @close="isFolderSelectOpen = false"
+            @open-create="isFolderCreateOpen = true"
+            @saved="() => { /* 필요 시 목록 갱신 */ }"
+        />
+
+        <FolderCreateModal 
+            :isVisible="isFolderCreateOpen" 
+            @close="isFolderCreateOpen = false"
+            @created="() => { folderSelectRef?.fetchFolders(); }"
+        />
+
+    </div>
+</template>
+
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router'; // useRoute 추가
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
 import AttractionDetailModal from '@/components/sidebar/AttractionDetailModal.vue';
@@ -16,6 +70,10 @@ import image from '@/assets/images/example_place.png';
 const likeStore = useLikeStore();
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute(); // test2: 현재 경로 확인용
+
+// [test2 병합] 플랜 페이지 여부 확인
+const isPlanPage = computed(() => route.path.startsWith('/plan/'));
 
 // Props 정의
 const props = defineProps<{
@@ -241,20 +299,31 @@ const handleModalLike = (placeId: number) => {
 
     const item = searchResults.value[index] as PlaceCardDTO;
     
-    // 모달에서 이미 스토어 상태를 변경했으므로, 현재 스토어 상태를 기준으로 목록의 수치를 동기화
     const isNowLiked = likeStore.isLiked(placeId);
     
-    // 상태가 다를 때만 업데이트 (중복 호출 방지)
     if (item.isLiked !== isNowLiked) {
-        // 숫자 동기화
         const newLikes = item.likes + (isNowLiked ? 1 : -1);
         
-        // 아이템 교체로 반응성 강제 트리거 (Props 변경 감지 확실하게)
         searchResults.value[index] = {
             ...item,
             isLiked: isNowLiked,
             likes: newLikes
         } as PlaceCardDTO;
+    }
+};
+
+// [test2 병합] 메모 드래그 시작 핸들러
+const handleMemoDragStart = (e: DragEvent) => {
+    if (e.dataTransfer) {
+        e.dataTransfer.setDragImage(e.currentTarget as HTMLElement, 20, 20);
+
+        const memoData = {
+            type: 'MEMO',
+            title: '' 
+        };
+
+        e.dataTransfer.setData('MEMO', JSON.stringify(memoData));
+        e.dataTransfer.effectAllowed = 'move';
     }
 };
 
@@ -267,58 +336,7 @@ defineExpose({
     getCurrentSearchData,
     openDetailModal
 });
-
 </script>
-
-<template>
-    <div class="side-bar-search-tab">
-        <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
-
-        <div class="search-results-area" ref="scrollContainer" @scroll="handleScroll">
-            <PlaceCardList 
-                :places="searchResults" 
-                :loading="loading"
-                :has-searched="hasSearched" 
-                @item-click="handleItemClick" 
-                @mark="handleMarkAction" 
-                @like="handleLikeAction"
-            />
-            
-            <div v-if="isLoadMore" class="loading-more">
-                불러오는 중...
-            </div>
-        </div>
-
-        <AttractionDetailModal
-            :isVisible="isModalOpen"
-            :loading="modalLoading"
-            :detail="selectedDetail"
-            @close="isModalOpen = false"
-            @show-on-map="handleShowOnMap"
-            @mark="handleModalMark"
-            @share="(id) => console.log('Share attraction:', id)"
-            @like="handleModalLike"
-        />
-
-        <!-- 폴더 선택 모달 -->
-        <FolderSelectModal 
-            ref="folderSelectRef"
-            :isVisible="isFolderSelectOpen" 
-            :attractionId="selectedAttractionId"
-            @close="isFolderSelectOpen = false"
-            @open-create="isFolderCreateOpen = true"
-            @saved="() => { /* 필요 시 목록 갱신 */ }"
-        />
-
-        <!-- 폴더 생성 모달 (선택 모달에서 연결됨) -->
-        <FolderCreateModal 
-            :isVisible="isFolderCreateOpen" 
-            @close="isFolderCreateOpen = false"
-            @created="() => { folderSelectRef?.fetchFolders(); }"
-        />
-
-    </div>
-</template>
 
 <style scoped>
 .side-bar-search-tab {
@@ -327,9 +345,43 @@ defineExpose({
     height: 100%;
 }
 
+/* [test2 병합] 드래그 가이드 스타일 */
+.drag-guide-container {
+    padding: 10px 15px;
+}
+
+.guide-item {
+    padding: 10px 12px;
+    border: 1px dashed #d1d1d1;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background-color: white;
+    font-size: 12px;
+    color: #666;
+}
+
+.guide-item p {
+    margin: 0;
+}
+
+.memo-guide {
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.memo-guide:hover {
+    border-color: var(--color-primary, #777);
+    background-color: #f4f3f3;
+    color: #333;
+}
+
+.memo-guide:active {
+    cursor: grabbing;
+}
+
 .search-results-area {
     flex-grow: 1;
-    padding: 0 15px 40px;
+    padding: 0 15px 40px; /* feature 16의 패딩 유지 */
     overflow-y: auto;
 }
 

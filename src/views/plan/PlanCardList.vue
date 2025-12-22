@@ -17,22 +17,24 @@
 
 <script setup lang="ts">
 
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
+// 컴포넌트 및 타입 임포트
 import PlanSelector from '@/components/plan/PlanSelector.vue';
-import type { PlanType } from '@/types/plan';
-
 import PlanCard from '@/components/plan/PlanCard.vue';
 import PlanCreateCard from '@/components/plan/PlanCreateCard.vue';
-import type { PlanCardDTO } from '@/types/plan';
-
 import PlanFormModal from '@/components/plan/PlanFormModal.vue';
+import type { PlanType, PlanDTO, PlanCardDTO } from '@/types/plan';
 
-import imageMock from '@/assets/images/example_plan.png';
+// API 임포트
+import { createPlan, fetchPlans } from '@/api/plan';
+import type { CreatePlanRequest } from '@/api/plan';
 
 const router = useRouter();
 
+const plans = ref<PlanDTO[]>([]);
+const isLoading = ref(false);
 const isModalVisible = ref(false);
 const modalMode = ref<'CREATE' | 'EDIT'>('CREATE');
 const editingPlan = ref<PlanCardDTO | undefined>(undefined);
@@ -40,26 +42,38 @@ const editingPlan = ref<PlanCardDTO | undefined>(undefined);
 // 현재 선택된 탭 (기본값: 전체 일정)
 const currentPlanType = ref<PlanType>('ALL');
 
-// 더미 데이터
-const mockPlans = ref<PlanCardDTO[]>([
-    { id: '1', title: '제주도 여행 2024', startDate: '2024-10-20', endDate: '2024-10-23', imageUrl: imageMock, isShared: true },
-    { id: '2', title: '부산 주말 여행', startDate: '2024-11-15', endDate: '2024-11-17', imageUrl: imageMock, isShared: false },
-    { id: '3', title: '강원도 캠핑', startDate: '2024-12-01', endDate: '2024-12-03', imageUrl: imageMock, isShared: true },
-    // { id: '4', title: '전주 한옥마을', startDate: '2025-01-05', endDate: '2025-01-06', imageUrl: imageMock, isShared: false },
-]);
+const loadPlans = async () => {
+    isLoading.value = true;
+    try {
+        const data = await fetchPlans();
+        plans.value = data;
+        console.log("일정 목록 로드 성공:", data);
+    } catch (error) {
+        console.error("일정 목록 로드 실패:", error);
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+onMounted(() => {
+    loadPlans();
+});
 
 // 탭 선택에 따른 필터링
 const filteredPlans = computed(() => {
     if (currentPlanType.value === 'ALL') {
-        return mockPlans.value;
+        return plans.value;
     } else if (currentPlanType.value === 'PERSONAL') {
-        return mockPlans.value.filter(p => !p.isShared);
+        // 참여자가 1명 이하이면 개인 일정으로 간주
+        return plans.value.filter(p => p.participantIds?.length <= 1);
     } else if (currentPlanType.value === 'SHARED') {
-        return mockPlans.value.filter(p => p.isShared);
+        // 참여자가 2명 이상이면 공유 일정으로 간주
+        return plans.value.filter(p => p.participantIds?.length > 1);
     }
     return [];
 });
 
+// 이벤트 핸들러
 const goToDetail = (planId: string) => {
     router.push({
         name: 'PlanDetail',
@@ -92,7 +106,7 @@ const handleCreatePlan = () => {
 
 // 일정 수정 클릭
 const handleEditPlan = (planId: string) => {
-    const planToEdit = mockPlans.value.find(p => p.id === planId);
+    const planToEdit = plans.value.find(p => p.id === planId);
     if (planToEdit) {
         editingPlan.value = planToEdit;
         openModal('EDIT');
@@ -100,20 +114,33 @@ const handleEditPlan = (planId: string) => {
 };
 
 // 폼 제출
-const handleSubmitPlan = (payload: any) => {
+const handleSubmitPlan = async (payload: any) => {
     if (modalMode.value === 'CREATE') {
-        const newPlan = { ...payload, id: Date.now().toString(), imageUrl: imageMock, isShared: false };
-        mockPlans.value.push(newPlan);
-        console.log("새 일정 생성 완료:", newPlan);
-    } else if (modalMode.value === 'EDIT' && payload.id) {
-        const index = mockPlans.value.findIndex(p => p.id === payload.id);
-        if (index !== -1) {
-            mockPlans.value[index] = { ...mockPlans.value[index], ...payload };
-            console.log("일정 수정 완료:", mockPlans.value[index]);
-        }
-    }
+        try {
+            const requestData: CreatePlanRequest = {
+                title: payload.title,
+                startDate: payload.startDate,
+                endDate: payload.endDate,
+            };
 
-    closeModal();
+            const response = await createPlan(requestData);
+
+            closeModal();
+
+            // 생성 성공 후 바로 상세 페이지로 이동
+            router.push({
+                name: 'PlanDetail',
+                params: { id: response.planId.toString() }
+            });
+
+        } catch (error) {
+            console.error("일정 생성 중 오류 발생:", error);
+        }
+    } else if (modalMode.value === 'EDIT' && payload.id) {
+        // TODO: 수정 API 연결
+
+        closeModal();
+    }
 };
 </script>
 
@@ -121,7 +148,7 @@ const handleSubmitPlan = (payload: any) => {
 .plan-card-list-view {
     padding: 40px;
     background-color: #f7f7f7;
-    min-height: 100vh;
+    height: 100%;
 }
 
 .plan-header {

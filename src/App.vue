@@ -16,13 +16,25 @@ import { RouterView } from 'vue-router';
 import Header from '@/components/Header.vue';
 import { useAuthStore } from '@/stores/auth';
 
+import { fetchUser } from '@/api/auth';
+
 const authStore = useAuthStore();
 
-// 앱이 브라우저에 처음 로드될 때 실행되는 생명주기 훅
-onMounted(() => {
-  // 사용자가 새로고침을 하거나 사이트에 재방문했을 때, 
-  // 기존 로그인 세션(쿠키)이 살아있는지 확인하여 자동으로 로그인 상태를 복구함
-  authStore.checkLogin();
+onMounted(async () => {
+  // 앱 렌더링될 때, 딱 한 번 실행 (새로고침 포함)
+  try {
+    const user = await fetchUser();
+
+    if (user) {
+      authStore.setUser(user);
+    }
+  } catch (error) {
+    console.log("로그인 정보 없음 또는 세션 만료");
+    authStore.logout();
+  } finally {
+    authStore.setLoading(false);
+  }
+
 });
 </script>
 
