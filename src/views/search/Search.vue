@@ -17,6 +17,9 @@ const contentTypes = [
 import type { SearchData } from '@/types/sidebar';
 import { getMapAttractions, type MapAttractionResponse, type MapAttractionParams } from '@/api/attraction';
 
+// 로딩 상태 (초기값 true)
+const isLoading = ref(true);
+
 // 선택된 카테고리 상태 (null이면 선택 안함)
 const selectedCategory = ref<number | null>(null);
 
@@ -451,7 +454,10 @@ onMounted(() => {
         if (sideBarSearchTabRef.value) {
             console.log('[Search] Initial map load complete. Fetching recommendations...');
             // API 제약(최소 1개 조건)을 우회하기 위해 공백 키워드 전송 시도
-            sideBarSearchTabRef.value.searchByBounds(map.getBounds(), { keyword: ' ' }, true);
+            sideBarSearchTabRef.value.searchByBounds(map.getBounds(), { keyword: ' ' }, true)
+                .finally(() => {
+                    isLoading.value = false; // 초기 데이터 로드 완료 시 로딩 해제
+                });
             
             // 리스너 제거 (최초 1회만 실행)
             (window as any).kakao.maps.event.removeListener(map, 'tilesloaded', onTilesLoaded);
@@ -520,6 +526,7 @@ onMounted(() => {
 
   } catch (err) {
     console.error('Error initializing map:', err);
+    isLoading.value = false; // 에러 시에도 로딩 종료
   }
 });
 </script>
@@ -546,6 +553,12 @@ onMounted(() => {
     <main class="main-content">
       <div id="map"></div>
       
+      <!-- 로딩 오버레이 -->
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>여행지를 불러오고 있어요...</p>
+      </div>
+
       <!-- 지도 상단 카테고리 토글 -->
       <div class="category-overlay">
         <button 
@@ -575,6 +588,43 @@ onMounted(() => {
 </template>
 
 <style>
+/* 로딩 오버레이 스타일 */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+    backdrop-filter: blur(4px);
+}
+
+.loading-overlay p {
+    margin-top: 16px;
+    font-size: 16px;
+    color: #555;
+    font-weight: 600;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* 전역 스타일로 추가해야 Kakao Map 오버레이에 적용됨 */
 .cluster-overlay {
     background: #fff;
