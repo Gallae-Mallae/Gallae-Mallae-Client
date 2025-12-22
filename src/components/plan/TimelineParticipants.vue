@@ -19,11 +19,20 @@ const props = defineProps<Props>();
 const MAX_DISPLAY = 6;
 
 const displayedParticipants = computed(() => {
+
+    console.log("원본 participants 데이터:", props.participants);
+
     const transformedList: UserDTO[] = props.participants.map(member => {
+
+        const rawMember = JSON.parse(JSON.stringify(member));
+        console.log("실제 데이터 구조:", rawMember);
+
+        const displayName = member.nickname || (member as any).name;
+
         return {
             userId: member.userId,
-            name: member.name, 
-            nickname: member.nickname,
+            name: displayName,
+            nickname: displayName,
             profileImageUrl: member.profileImageUrl,
         } as UserDTO;
     });
@@ -36,5 +45,9 @@ const displayedParticipants = computed(() => {
 <style scoped>
 .participants-wrapper {
     display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    overflow: visible;
+    height: auto;
 }
 </style>

@@ -2,14 +2,29 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
 import { timeToMinutes, minutesToTimeString } from "@/utils/time";
+import { fetchPlanById } from "@/api/plan";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
   const activeMemoId = ref<number | null>(null);
+  const isLoading = ref(false);
 
   // 초기 데이터 설정 (PlanTimetable의 onMounted에서 호출)
   const setPlanData = (data: PlanDTO) => {
     planData.value = data;
+  };
+
+  const loadPlan = async (planId: number) => {
+    isLoading.value = true;
+    try {
+      planData.value = null;
+      const data = await fetchPlanById(planId);
+      planData.value = data;
+    } catch (error) {
+      console.error("일정 로드 실패", error);
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   // 1. 드래그 앤 드롭으로 일정 추가
@@ -209,7 +224,6 @@ export const usePlanStore = defineStore("plan", () => {
       const scheduleItem = targetDay.items.find((i) => i.blockId === blockId);
 
       if (scheduleItem) {
-
         scheduleItem.memos = [...newList];
       }
     }
@@ -218,6 +232,8 @@ export const usePlanStore = defineStore("plan", () => {
   return {
     planData,
     activeMemoId,
+    isLoading,
+    loadPlan,
     setPlanData,
     addScheduleItem,
     updateItemDuration,

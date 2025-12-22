@@ -74,7 +74,7 @@ const handleDrop = (event: DragEvent) => {
         toDay: props.data.dayNumber,
         newStartTime: startTimeStr
       });
-      
+
       return;
     }
   }

@@ -1,38 +1,41 @@
 <template>
   <div class="plan-page-container">
-    <TimelineHeader v-if="planData" :plan-data="planData" :participants="planData.participants" />
+    <div v-if="planStore.isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
 
-    <main class="plan-content">
-      <TimelineTable v-if="planData" :schedules="planData.dailySchedules" />
-    </main>
+    <template v-else-if="planData">
+      <TimelineHeader :plan-data="planData" :participants="planData.participants" />
+      <main class="plan-content">
+        <TimelineTable :schedules="planData.dailySchedules" />
+      </main>
+    </template>
+
   </div>
 </template>
 
 <script setup lang="ts">
 
-import { ref, onMounted, computed } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import TimelineHeader from '@/components/plan/TimelineHeader.vue';
 import TimelineTable from '@/components/plan/TimelineTable.vue';
 import { usePlanStore } from '@/stores/plan';
-import { fetchPlanById } from '@/api/plan';
 
 const route = useRoute();
 const planStore = usePlanStore();
 
 const planData = computed(() => planStore.planData);
 
-onMounted(async () => {
-  const planId = Number(route.params.id); //
-  if (!planId) return;
-
-  try {
-    // API 연결 시점에는 이 주석을 해제하면 됩니다.
-    // const data = await fetchPlanById(planId);
-    // planStore.setPlanData(data);
-  } catch (error) {
-    console.error("일정 로드 실패:", error);
+const initPlan = async () => {
+  const planId = Number(route.params.id);
+  if (planId) {
+    await planStore.loadPlan(planId);
   }
+};
+
+onMounted(() => {
+  initPlan();
 });
 </script>
 
