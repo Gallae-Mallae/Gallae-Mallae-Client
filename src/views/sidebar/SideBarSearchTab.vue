@@ -1,13 +1,70 @@
+<template>
+  <div class="side-bar-search-tab">
+    <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
+
+    <div v-if="isPlanPage" class="drag-guide-container">
+      <div class="guide-item memo-guide" draggable="true" @dragstart="handleMemoDragStart">
+        <p>📝 이곳을 드래그하여 일정표에 메모를 추가하세요.</p>
+      </div>
+    </div>
+
+    <div class="search-results-area" ref="scrollContainer" @scroll="handleScroll">
+      <PlaceCardList
+        :places="searchResults"
+        :loading="loading"
+        :has-searched="hasSearched"
+        @item-click="handleItemClick"
+        @mark="handleMarkAction"
+        @like="handleLikeAction"
+      />
+
+      <div v-if="isLoadMore" class="loading-more">불러오는 중...</div>
+    </div>
+
+    <AttractionDetailModal
+      :isVisible="isModalOpen"
+      :loading="modalLoading"
+      :detail="selectedDetail"
+      @close="isModalOpen = false"
+      @show-on-map="handleShowOnMap"
+      @mark="handleModalMark"
+      @share="(id) => console.log('Share attraction:', id)"
+      @like="handleModalLike"
+    />
+
+    <FolderSelectModal
+      ref="folderSelectRef"
+      :isVisible="isFolderSelectOpen"
+      :attractionId="selectedAttractionId"
+      @close="isFolderSelectOpen = false"
+      @open-create="isFolderCreateOpen = true"
+      @saved="() => {}"
+    />
+
+    <FolderCreateModal
+      :isVisible="isFolderCreateOpen"
+      @close="isFolderCreateOpen = false"
+      @created="() => { folderSelectRef?.fetchFolders(); }"
+    />
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
 import AttractionDetailModal from '@/components/sidebar/AttractionDetailModal.vue';
 import FolderSelectModal from '@/components/sidebar/FolderSelectModal.vue';
 import FolderCreateModal from '@/components/sidebar/FolderCreateModal.vue';
 import type { PlaceCardDTO, SearchData } from '@/types/sidebar';
-import { getSidebarAttractions, getAttractionDetail, toggleLike, type SidebarAttractionParams, type AttractionDetailResponse } from '@/api/attraction';
+import {
+  getSidebarAttractions,
+  getAttractionDetail,
+  toggleLike,
+  type SidebarAttractionParams,
+  type AttractionDetailResponse,
+} from '@/api/attraction';
 import { getCategoryDisplayName } from '@/utils/categoryMap';
 import { useLikeStore } from '@/stores/like';
 import { useAuthStore } from '@/stores/auth';
@@ -16,40 +73,33 @@ import image from '@/assets/images/example_place.png';
 const likeStore = useLikeStore();
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
-// Props 정의
-const props = defineProps<{
-    selectedCategory?: number | null;
-}>();
+const isPlanPage = computed(() => route.path.startsWith('/plan/'));
 
-// Emits 정의
+const props = defineProps<{ selectedCategory?: number | null }>();
 const emit = defineEmits<{
-    (e: 'map-highlight', placeId: string, coords: { lat: number, lng: number, level?: number }): void;
-    (e: 'mark-action', placeId: string): void;
-    (e: 'state-change', hasSearched: boolean): void;
-    (e: 'search-request', data: SearchData): void;
-    (e: 'reset-request'): void;
+  (e: 'map-highlight', placeId: string, coords: { lat: number; lng: number; level?: number }): void;
+  (e: 'mark-action', placeId: string): void;
+  (e: 'state-change', hasSearched: boolean): void;
+  (e: 'search-request', data: SearchData): void;
+  (e: 'reset-request'): void;
 }>();
 
-// 상태 관리
-const loading = ref(false); 
-const isLoadMore = ref(false); 
+const loading = ref(false);
+const isLoadMore = ref(false);
 const hasSearched = ref(false);
-const searchResults = ref<PlaceCardDTO[]>([]); 
+const searchResults = ref<PlaceCardDTO[]>([]);
 const searchFormRef = ref<InstanceType<typeof SearchForm> | null>(null);
 
-// 모달 관련 상태
 const isModalOpen = ref(false);
 const modalLoading = ref(false);
 const selectedDetail = ref<AttractionDetailResponse | null>(null);
-
-// 폴더 저장 모달 상태
 const isFolderSelectOpen = ref(false);
 const isFolderCreateOpen = ref(false);
 const selectedAttractionId = ref<number | null>(null);
 const folderSelectRef = ref<any>(null);
 
-// 페이지네이션 상태
 const page = ref(0);
 const hasNext = ref(false);
 const currentBounds = ref<any>(null);
@@ -57,286 +107,223 @@ const currentFilters = ref<any>({});
 const scrollContainer = ref<HTMLElement | null>(null);
 
 const fetchSidebarData = async (loadMore: boolean = false) => {
-    if (!currentBounds.value) return;
-    
-    if (loadMore) {
-        if (isLoadMore.value || loading.value) return;
-        isLoadMore.value = true;
-    } else {
-        if (loading.value) return;
-        loading.value = true;
-    }
-    
-    try {
-        const sw = currentBounds.value.getSouthWest();
-        const ne = currentBounds.value.getNorthEast();
-        
-        const params: SidebarAttractionParams = {
-            southWestLat: sw.getLat(),
-            southWestLng: sw.getLng(),
-            northEastLat: ne.getLat(),
-            northEastLng: ne.getLng(),
-            zoomLevel: 5, 
-            ...currentFilters.value,
-            page: page.value,
-            size: 20
-        };
+  if (!currentBounds.value) return;
+  if (loadMore) {
+    if (isLoadMore.value || loading.value) return;
+    isLoadMore.value = true;
+  } else {
+    if (loading.value) return;
+    loading.value = true;
+  }
 
-        const response = await getSidebarAttractions(params);
+  try {
+    const sw = currentBounds.value.getSouthWest();
+    const ne = currentBounds.value.getNorthEast();
+    const params: SidebarAttractionParams = {
+      southWestLat: sw.getLat(),
+      southWestLng: sw.getLng(),
+      northEastLat: ne.getLat(),
+      northEastLng: ne.getLng(),
+      zoomLevel: 5,
+      ...currentFilters.value,
+      page: page.value,
+      size: 20,
+    };
 
-        const newItems = response.attractions.map(item => ({
-            id: String(item.attractionId),
-            imageUrl: item.imageUrl || image,
-            title: item.title || "이름 없음",
-            address: item.address || "주소 없음",
-            latitude: item.latitude,
-            longitude: item.longitude,
-            categoryCode: item.contentTypeId,
-            categoryName: getCategoryDisplayName(item.contentTypeId),
-            likes: item.likeCount || 0,
-            isLiked: likeStore.isLiked(item.attractionId),
-            isMarked: false,
-        }));
+    const response = await getSidebarAttractions(params);
+    const newItems = response.attractions.map((item) => ({
+      id: String(item.attractionId),
+      imageUrl: item.imageUrl || image,
+      title: item.title || '이름 없음',
+      address: item.address || '주소 없음',
+      latitude: item.latitude,
+      longitude: item.longitude,
+      categoryCode: item.contentTypeId,
+      categoryName: getCategoryDisplayName(item.contentTypeId),
+      likes: item.likeCount || 0,
+      isLiked: likeStore.isLiked(item.attractionId),
+      isMarked: false,
+    }));
 
-        if (loadMore) {
-            searchResults.value = [...searchResults.value, ...newItems];
-        } else {
-            searchResults.value = newItems;
-        }
+    if (loadMore) searchResults.value = [...searchResults.value, ...newItems];
+    else searchResults.value = newItems;
 
-        hasNext.value = response.hasNext;
-        page.value = response.nowPage;
-
-    } catch (error) {
-        console.error("Failed to fetch sidebar attractions:", error);
-    } finally {
-        loading.value = false;
-        isLoadMore.value = false;
-    }
+    hasNext.value = response.hasNext;
+    page.value = response.nowPage;
+  } catch (error) {
+    console.error('Failed to fetch sidebar attractions:', error);
+  } finally {
+    loading.value = false;
+    isLoadMore.value = false;
+  }
 };
 
 const handleSearch = async (data: SearchData) => {
-    if (!data.query.trim() && !data.sidoCode && !props.selectedCategory) {
-        alert("검색어, 지역 또는 카테고리를 선택해주세요.");
-        return;
-    }
-    emit('search-request', data);
+  if (!data.query.trim() && !data.sidoCode && !props.selectedCategory) {
+    alert('검색어, 지역 또는 카테고리를 선택해주세요.');
+    return;
+  }
+  emit('search-request', data);
 };
 
 const handleReset = () => {
-    hasSearched.value = false;
-    searchResults.value = [];
-    currentBounds.value = null;
-    currentFilters.value = {};
-    page.value = 0;
-    hasNext.value = false;
-    emit('reset-request');
+  hasSearched.value = false;
+  searchResults.value = [];
+  currentBounds.value = null;
+  currentFilters.value = {};
+  page.value = 0;
+  hasNext.value = false;
+  emit('reset-request');
 };
 
 const searchByBounds = async (bounds: any, filters: any = {}, isInitial: boolean = false) => {
-    hasSearched.value = !isInitial;
-    currentBounds.value = bounds;
-    currentFilters.value = filters;
-    page.value = 0;
-    hasNext.value = false;
-    
-    if (scrollContainer.value) {
-        scrollContainer.value.scrollTop = 0;
-    }
-
-    await fetchSidebarData(false);
+  hasSearched.value = !isInitial;
+  currentBounds.value = bounds;
+  currentFilters.value = filters;
+  page.value = 0;
+  hasNext.value = false;
+  if (scrollContainer.value) scrollContainer.value.scrollTop = 0;
+  await fetchSidebarData(false);
 };
 
 const handleScroll = (e: Event) => {
-    const target = e.target as HTMLElement;
-    if (!target) return;
-
-    const { scrollTop, clientHeight, scrollHeight } = target;
-    if (scrollTop + clientHeight >= scrollHeight - 50) {
-        if (hasNext.value && !loading.value && !isLoadMore.value) {
-            page.value += 1;
-            fetchSidebarData(true);
-        }
+  const target = e.target as HTMLElement;
+  if (!target) return;
+  if (target.scrollTop + target.clientHeight >= target.scrollHeight - 50) {
+    if (hasNext.value && !loading.value && !isLoadMore.value) {
+      page.value += 1;
+      fetchSidebarData(true);
     }
+  }
 };
 
-const getCurrentSearchData = (): SearchData | null => {
-    if (searchFormRef.value) {
-        return searchFormRef.value.getFormData();
-    }
-    return null;
-};
+const getCurrentSearchData = (): SearchData | null =>
+  searchFormRef.value?.getFormData() || null;
 
 const openDetailModal = async (placeId: string) => {
-    isModalOpen.value = true;
-    modalLoading.value = true;
-    selectedDetail.value = null;
-
-    try {
-        const detail = await getAttractionDetail(Number(placeId));
-        selectedDetail.value = detail;
-    } catch (error) {
-        console.error("Failed to fetch attraction detail:", error);
-        alert("상세 정보를 불러오는데 실패했습니다. 메인 페이지로 돌아갑니다.");
-        isModalOpen.value = false;
-        router.push('/');
-    } finally {
-        modalLoading.value = false;
-    }
+  isModalOpen.value = true;
+  modalLoading.value = true;
+  selectedDetail.value = null;
+  try {
+    selectedDetail.value = await getAttractionDetail(Number(placeId));
+  } catch (error) {
+    console.error(error);
+    alert('상세 정보를 불러오는데 실패했습니다.');
+    isModalOpen.value = false;
+    router.push('/');
+  } finally {
+    modalLoading.value = false;
+  }
 };
 
-const handleItemClick = (placeId: string, coords: { lat: number, lng: number }) => {
-    openDetailModal(placeId);
-};
+const handleItemClick = (placeId: string) => openDetailModal(placeId);
 
 const handleShowOnMap = (detail: AttractionDetailResponse) => {
-    emit('map-highlight', String(detail.attractionId), { 
-        lat: detail.latitude, 
-        lng: detail.longitude,
-        level: 2
-    });
+  emit('map-highlight', String(detail.attractionId), {
+    lat: detail.latitude,
+    lng: detail.longitude,
+    level: 2,
+  });
 };
 
 const handleMarkAction = (placeId: string) => {
-    if (!authStore.isLoggedIn) {
-        alert("로그인이 필요한 기능입니다.");
-        return;
-    }
-    selectedAttractionId.value = Number(placeId);
-    isFolderSelectOpen.value = true;
+  if (!authStore.isLoggedIn) {
+    alert('로그인이 필요한 기능입니다.');
+    return;
+  }
+  selectedAttractionId.value = Number(placeId);
+  isFolderSelectOpen.value = true;
 };
-
-const handleModalMark = (placeId: number) => {
-    selectedAttractionId.value = placeId;
-    isFolderSelectOpen.value = true;
-};
+const handleModalMark = (placeId: number) => handleMarkAction(String(placeId));
 
 const handleLikeAction = (placeId: string) => {
-    if (!authStore.isLoggedIn) {
-        alert('로그인이 필요합니다.');
-        return;
-    }
-
-    const item = searchResults.value.find(p => p.id === placeId);
-    if (!item) return;
-
-    const targetItem = item as PlaceCardDTO;
-    const wasLiked = targetItem.isLiked;
+  if (!authStore.isLoggedIn) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  const item = searchResults.value.find((p) => p.id === placeId);
+  if (!item) return;
+  const wasLiked = item.isLiked;
+  likeStore.toggleLikeState(Number(placeId));
+  item.isLiked = !wasLiked;
+  item.likes += wasLiked ? -1 : 1;
+  toggleLike(Number(placeId)).catch((err) => {
     likeStore.toggleLikeState(Number(placeId));
-    targetItem.isLiked = !wasLiked;
-    targetItem.likes += wasLiked ? -1 : 1;
-
-    toggleLike(Number(placeId)).catch(err => {
-        console.error("좋아요 토글 API 실패 (사이드바):", err);
-        likeStore.toggleLikeState(Number(placeId));
-        targetItem.isLiked = wasLiked;
-        targetItem.likes += wasLiked ? -1 : 1;
-        alert("좋아요 처리에 실패했습니다.");
-    });
+    item.isLiked = wasLiked;
+    item.likes += wasLiked ? -1 : 1;
+    alert('좋아요 처리에 실패했습니다.');
+  });
 };
 
 const handleModalLike = (placeId: number) => {
-    const index = searchResults.value.findIndex(p => p.id === String(placeId));
-    if (index === -1) return;
-
-    const item = searchResults.value[index] as PlaceCardDTO;
-    
-    // 모달에서 이미 스토어 상태를 변경했으므로, 현재 스토어 상태를 기준으로 목록의 수치를 동기화
-    const isNowLiked = likeStore.isLiked(placeId);
-    
-    // 상태가 다를 때만 업데이트 (중복 호출 방지)
-    if (item.isLiked !== isNowLiked) {
-        // 숫자 동기화
-        const newLikes = item.likes + (isNowLiked ? 1 : -1);
-        
-        // 아이템 교체로 반응성 강제 트리거 (Props 변경 감지 확실하게)
-        searchResults.value[index] = {
-            ...item,
-            isLiked: isNowLiked,
-            likes: newLikes
-        } as PlaceCardDTO;
-    }
+  const index = searchResults.value.findIndex((p) => p.id === String(placeId));
+  if (index === -1) return;
+  const item = searchResults.value[index];
+  const isNowLiked = likeStore.isLiked(placeId);
+  if (item.isLiked !== isNowLiked) {
+    searchResults.value[index] = {
+      ...item,
+      isLiked: isNowLiked,
+      likes: item.likes + (isNowLiked ? 1 : -1),
+    };
+  }
 };
 
-watch(hasSearched, (newVal) => {
-    emit('state-change', newVal);
-});
+const handleMemoDragStart = (e: DragEvent) => {
+  if (e.dataTransfer) {
+    e.dataTransfer.setDragImage(e.currentTarget as HTMLElement, 20, 20);
+    e.dataTransfer.setData('MEMO', JSON.stringify({ type: 'MEMO', title: '' }));
+    e.dataTransfer.effectAllowed = 'move';
+  }
+};
 
-defineExpose({
-    searchByBounds,
-    getCurrentSearchData,
-    openDetailModal
-});
+watch(hasSearched, (newVal) => emit('state-change', newVal));
 
+defineExpose({ searchByBounds, getCurrentSearchData, openDetailModal });
 </script>
-
-<template>
-    <div class="side-bar-search-tab">
-        <SearchForm ref="searchFormRef" @search-submit="handleSearch" @reset="handleReset" />
-
-        <div class="search-results-area" ref="scrollContainer" @scroll="handleScroll">
-            <PlaceCardList 
-                :places="searchResults" 
-                :loading="loading"
-                :has-searched="hasSearched" 
-                @item-click="handleItemClick" 
-                @mark="handleMarkAction" 
-                @like="handleLikeAction"
-            />
-            
-            <div v-if="isLoadMore" class="loading-more">
-                불러오는 중...
-            </div>
-        </div>
-
-        <AttractionDetailModal
-            :isVisible="isModalOpen"
-            :loading="modalLoading"
-            :detail="selectedDetail"
-            @close="isModalOpen = false"
-            @show-on-map="handleShowOnMap"
-            @mark="handleModalMark"
-            @share="(id) => console.log('Share attraction:', id)"
-            @like="handleModalLike"
-        />
-
-        <!-- 폴더 선택 모달 -->
-        <FolderSelectModal 
-            ref="folderSelectRef"
-            :isVisible="isFolderSelectOpen" 
-            :attractionId="selectedAttractionId"
-            @close="isFolderSelectOpen = false"
-            @open-create="isFolderCreateOpen = true"
-            @saved="() => { /* 필요 시 목록 갱신 */ }"
-        />
-
-        <!-- 폴더 생성 모달 (선택 모달에서 연결됨) -->
-        <FolderCreateModal 
-            :isVisible="isFolderCreateOpen" 
-            @close="isFolderCreateOpen = false"
-            @created="() => { folderSelectRef?.fetchFolders(); }"
-        />
-
-    </div>
-</template>
 
 <style scoped>
 .side-bar-search-tab {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
-
+.drag-guide-container {
+  padding: 10px 15px;
+}
+.guide-item {
+  padding: 10px 12px;
+  border: 1px dashed #d1d1d1;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  background-color: white;
+  font-size: 12px;
+  color: #666;
+}
+.guide-item p {
+  margin: 0;
+}
+.memo-guide {
+  cursor: grab;
+  transition: all 0.2s;
+}
+.memo-guide:hover {
+  border-color: var(--color-primary, #777);
+  background-color: #f4f3f3;
+  color: #333;
+}
+.memo-guide:active {
+  cursor: grabbing;
+}
 .search-results-area {
-    flex-grow: 1;
-    padding: 0 15px 40px;
-    overflow-y: auto;
+  flex-grow: 1;
+  padding: 0 15px 40px;
+  overflow-y: auto;
 }
-
 .loading-more {
-    text-align: center;
-    padding: 10px;
-    font-size: 13px;
-    color: #999;
+  text-align: center;
+  padding: 10px;
+  font-size: 13px;
+  color: #999;
 }
 </style>

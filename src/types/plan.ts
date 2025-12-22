@@ -14,7 +14,7 @@ export interface PlanMemberDTO {
   userId: string;
   planId: string;
 
-  name: string,
+  name: string;
   nickname: string | null;
   profileImageUrl: string | null;
 }
@@ -22,52 +22,53 @@ export interface PlanMemberDTO {
 export type MemoContentType = "TEXT" | "LINK";
 
 export interface MemoDTO {
-    id: string;
-    type: MemoContentType;
-    content: string;
-    displayText: string;
+  id: string;
+  type: MemoContentType;
+  content: string;
+  displayText: string;
 }
 
 export interface PlaceItemDTO {
-    id: string;
-    title: string;
-    category: string;
-    latitude: number;
-    longitude: number;
-    address: string;
-    
-    memoContents: MemoDTO[];
+  id: string;
+  title: string;
+  categoryCode: number;
+  category: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+
+  memoContents: MemoDTO[];
 }
 
-export interface MemoItemDTO {
-    id: string;
-    title: string;
-    
-    memoContents: MemoDTO[];
-}
-
-export type ScheduleItemType = "Place" | "Memo";
+export type ScheduleItemType = "PLACE" | "MEMO";
 
 export interface ScheduleItemDTO {
-    id: string;
-    type: ScheduleItemType;
-    
-    startTime: number;
-    durationTime: number;
-    
-    itemId: string;
+  id: string;
+  type: ScheduleItemType;
+
+  day: number;
+  startTime: number;
+  endTime: number;
+  durationTime: number;
+
+  title: string;
+  categoryCode?: number;
+  category?: string;
+
+  memoContents: MemoDTO[];
+  placeId?: string;
 }
 
 export interface DailyScheduleDTO {
-    dayNumber: number;
-    date: string;
-    
-    items: ScheduleItemDTO[];
+  dayNumber: number;
+  date: string;
+
+  items: ScheduleItemDTO[];
 }
 
 export interface PlanDTO extends PlanCardDTO {
-    ownerId: string;
-    participantIds: string[];
-    
-    dailySchedules: DailyScheduleDTO[];
+  ownerId: string;
+  participantIds: string[];
+
+  dailySchedules: DailyScheduleDTO[];
 }

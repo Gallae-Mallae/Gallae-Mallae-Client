@@ -115,7 +115,7 @@ const handleEdit = () => {
 .back-action {
     width: 24px;
     height: 24px;
-    margin-right: 24px;
+    margin-right: 20px;
     cursor: pointer;
     padding: 0;
     display: flex;
@@ -125,8 +125,8 @@ const handleEdit = () => {
 }
 
 .icon-small {
-    width: 120%;
-    height: 120%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
 }
 

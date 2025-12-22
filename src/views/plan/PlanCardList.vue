@@ -121,7 +121,7 @@ const handleSubmitPlan = (payload: any) => {
 .plan-card-list-view {
     padding: 40px;
     background-color: #f7f7f7;
-    min-height: 100vh;
+    height: 100%;
 }
 
 .plan-header {
