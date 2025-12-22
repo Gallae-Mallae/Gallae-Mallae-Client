@@ -6,7 +6,7 @@
             </span>
 
             <div class="plan-info">
-                <h1 class="plan-title">{{ props.planData.title }}</h1>
+                <h1 class="plan-title">{{ plan?.title }}</h1>
                 <p class="plan-dates">{{ dateRange }}</p>
             </div>
             <button class="map-button" @click="handleMapView">
@@ -16,7 +16,7 @@
         </div>
 
         <div class="header-right">
-            <TimelineParticipants :participants="props.participants" />
+            <TimelineParticipants :participants="plan?.participants || []" />
 
             <div class="action-buttons">
                 <button class="action-button primary" @click="handleCopy">
@@ -35,20 +35,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import type { PlanCardDTO, PlanMemberDTO } from '@/types/plan';
+import { usePlanStore } from '@/stores/plan';
 import TimelineParticipants from '@/components/plan/TimelineParticipants.vue';
 import savePlanIcon from '@/assets/icons/ic_save_plan.png';
 import editPlanIcon from '@/assets/icons/ic_edit_plan.png';
 import strings from '@/assets/values/strings.plan.json';
 
-interface Props {
-    planData: PlanCardDTO;
-    participants: PlanMemberDTO[];
-}
-
 const router = useRouter();
+const planStore = usePlanStore();
 
-const props = defineProps<Props>();
+const plan = computed(() => planStore.planData);
 
 const isEditing = ref(false);
 
@@ -56,8 +52,7 @@ const saveEditButtonText = computed(() => isEditing.value ? strings.SAVE_PLAN_BU
 const saveEditButtonIcon = computed(() => isEditing.value ? savePlanIcon : editPlanIcon);
 
 const handleBack = () => {
-    // '/plan' 경로인 PlanList로 명시적 이동
-    router.push({ name: 'PlanList' }); 
+    router.push({ name: 'PlanList' });
 };
 
 const handleEditSaveToggle = () => {
@@ -73,7 +68,8 @@ const handleEditSaveToggle = () => {
 };
 
 const dateRange = computed(() => {
-    return `${props.planData.startDate} ~ ${props.planData.endDate}`;
+    if (!plan.value) return '';
+    return `${plan.value.startDate} ~ ${plan.value.endDate}`;
 });
 
 const handleMapView = () => {
@@ -110,6 +106,7 @@ const handleEdit = () => {
 .header-right {
     display: flex;
     align-items: center;
+    height: 100%;
 }
 
 .back-action {

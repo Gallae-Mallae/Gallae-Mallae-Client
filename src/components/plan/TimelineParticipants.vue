@@ -19,11 +19,15 @@ const props = defineProps<Props>();
 const MAX_DISPLAY = 6;
 
 const displayedParticipants = computed(() => {
+
     const transformedList: UserDTO[] = props.participants.map(member => {
+
+        const displayName = member.nickname || (member as any).name;
+
         return {
             userId: member.userId,
-            name: member.name, 
-            nickname: member.nickname,
+            name: displayName,
+            nickname: displayName,
             profileImageUrl: member.profileImageUrl,
         } as UserDTO;
     });
@@ -36,5 +40,8 @@ const displayedParticipants = computed(() => {
 <style scoped>
 .participants-wrapper {
     display: flex;
+    align-items: flex-start;
+    overflow: visible;
+    height: auto;
 }
 </style>

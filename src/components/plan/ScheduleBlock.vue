@@ -3,7 +3,7 @@
         @dragstart="handleDragStart">
 
         <div class="block-content" @click="$emit('click', item)">
-            <div class="memo-icon-container" @click.stop="planStore.toggleMemo(item.id)">
+            <div class="memo-icon-container" @click.stop="planStore.toggleMemo(item.blockId)">
                 <div class="white-circle">
                     <img src="@/assets/icons/ic_memo.png" alt="메모" />
                 </div>
@@ -11,23 +11,23 @@
 
             <div class="title-area" @click="$emit('click', item)">
                 <span class="block-title">{{
-                    item.type === 'PLACE'
+                    item.attraction
                         ? item.title
-                        : (item.memoContents?.[0]?.content ?? '')
+                        : (item.memos?.[0]?.content ?? '')
                 }}</span>
             </div>
 
-            <button class="delete-btn" @click.stop="$emit('remove', item.id)">
+            <button class="delete-btn" @click.stop="$emit('remove', item.blockId)">
                 <img src="@/assets/icons/ic_close.png" alt="삭제" />
             </button>
         </div>
 
         <div class="memo-modal-wrapper" v-if="isMemoModalOpen" @mousedown.stop @mouseenter="isDraggable = false"
             @mouseleave="isDraggable = true">
-            <MemoModal :isVisible="isMemoModalOpen" :title="item.type === 'PLACE' ? item.title : '메모'"
-                :memoContents="item.memoContents" @close="planStore.closeMemo" @add-content="handleAddMemo"
+            <MemoModal :isVisible="isMemoModalOpen" :title="item.attraction ? item.title : '메모'"
+                :memoContents="item.memos" @close="planStore.closeMemo" @add-content="handleAddMemo"
                 @remove-content="handleRemoveMemo"
-                @reorder-memos="(newList) => planStore.updateMemoOrder(item.day, item.id, newList)" />
+                @reorder-memos="(newList) => planStore.updateMemoOrder(item.day, item.blockId, newList)" />
         </div>
 
         <div class="resize-handle" @mousedown.stop.prevent="initResize"></div>
@@ -40,9 +40,10 @@ import { usePlanStore } from '@/stores/plan';
 import type { ScheduleItemDTO } from '@/types/plan';
 import { getCategoryVarName } from '@/utils/categoryMap';
 import MemoModal from '@/components/plan/MemoModal.vue';
+import { timeToMinutes } from '@/utils/time';
 
 const planStore = usePlanStore();
-const isMemoModalOpen = computed(() => planStore.activeMemoId === props.item.id);
+const isMemoModalOpen = computed(() => planStore.activeMemoId === props.item.blockId);
 
 const emit = defineEmits(['click', 'remove']);
 
@@ -52,11 +53,11 @@ const props = defineProps<{
 }>();
 
 const handleAddMemo = (memoData: { type: 'TEXT' | 'LINK', content: string }) => {
-    planStore.addMemoToScheduleItem(props.item.day, props.item.id, memoData);
+    planStore.addMemoToScheduleItem(props.item.day, props.item.blockId, memoData);
 };
 
 const handleRemoveMemo = (index: number) => {
-    planStore.removeMemoFromScheduleItem(props.item.day, props.item.id, index);
+    planStore.removeMemoFromScheduleItem(props.item.day, props.item.blockId, index);
 };
 
 const handleClickOutside = (e: MouseEvent) => {
@@ -75,22 +76,27 @@ onUnmounted(() => {
 });
 
 const blockStyle = computed(() => {
-
-    const baseColor = props.item.type === 'PLACE' && props.item.categoryCode !== undefined
-        ? `var(--category-tag-bg-${getCategoryVarName(props.item.categoryCode)})`
+    const categoryCode = props.item.attraction?.categoryCode ?? props.item.categoryCode;
+    const baseColor = categoryCode !== undefined
+        ? `var(--category-tag-bg-${getCategoryVarName(categoryCode)})`
         : 'var(--category-tag-bg-ETC)';
     const bgColor = `color-mix(in srgb, ${baseColor}, transparent 20%)`;
 
+    // 문자열 시간을 숫자로 변환
+    const startMinutes = timeToMinutes(props.item.startTime);
+    const endMinutes = timeToMinutes(props.item.endTime);
+
     // 9시 기준으로 시작 위치 계산
     const START_TIME_OFFSET = 9 * 60;
-    const relativeStart = props.item.startTime - START_TIME_OFFSET;
+    const relativeStart = startMinutes - START_TIME_OFFSET;
 
     const V_MARGIN = 1; // 상하 1px씩 여백
     const H_MARGIN = 2; // 좌우 2px씩 여백
 
     // 시작위치 및 높이 계산
     const topPosition = (relativeStart / 60) * props.unitHeight;
-    const blockHeight = (props.item.durationTime / 60) * props.unitHeight;
+    const duration = endMinutes - startMinutes;
+    const blockHeight = (duration / 60) * props.unitHeight;
 
     return {
         backgroundColor: bgColor,
@@ -110,7 +116,7 @@ const startDuration = ref(0);
 const initResize = (e: MouseEvent) => {
     isResizing.value = true;
     startY.value = e.clientY;
-    startDuration.value = props.item.durationTime;
+    startDuration.value = timeToMinutes(props.item.endTime) - timeToMinutes(props.item.startTime);
 
     window.addEventListener('mousemove', handleResize);
     window.addEventListener('mouseup', stopResize);
@@ -127,7 +133,7 @@ const handleResize = (e: MouseEvent) => {
     let newDuration = Math.max(30, startDuration.value + deltaMinutes);
     newDuration = Math.round(newDuration / 30) * 30;
 
-    planStore.updateItemDuration(props.item.day, props.item.id, newDuration);
+    planStore.updateItemDuration(props.item.day, props.item.blockId, newDuration);
 };
 
 const stopResize = () => {
@@ -159,7 +165,7 @@ const handleDragStart = (e: DragEvent) => {
 
     const dragData = {
         type: 'MOVE_ITEM',
-        itemId: props.item.id,
+        blockId: props.item.blockId,
         fromDay: props.item.day
     };
 

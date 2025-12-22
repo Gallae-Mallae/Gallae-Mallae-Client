@@ -18,10 +18,67 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { usePlanStore } from '@/stores/plan';
+import { stompClient } from '@/utils/websocket';
 
 import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
 import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
+
+const route = useRoute();
+const planStore = usePlanStore();
+
+const connectWebSocket = (planId: string) => {
+    if (!planId) return;
+
+    // 1. 연결 성공 시 실행될 로직
+    stompClient.onConnect = () => {
+        console.log(`실시간 통신 연결 성공`);
+
+        // [구독 1] 일정 블록 생성 채널
+        stompClient.subscribe(`/topic/plans/${planId}`, (message) => {
+            console.log('일정 생성 이벤트 수신');
+            const payload = JSON.parse(message.body);
+            planStore.handleSocketEvent(payload);
+        });
+
+        // 추후 이동(MOVE), 삭제(DELETE) 채널도 여기에 subscribe를 추가하면 됩니다.
+    };
+
+    // STOMP 에러 핸들링
+    stompClient.onStompError = (frame) => {
+        console.error('STOMP Protocol Error:', frame.headers['message']);
+    };
+
+    // 웹소켓 활성화
+    if (!stompClient.active) {
+        stompClient.activate();
+    }
+};
+
+onMounted(() => {
+    // URL의 planId를 사용하여 연결
+    const planId = route.params.id as string;
+    connectWebSocket(planId);
+});
+
+// 다른 플랜 페이지로 이동하면 재연결
+watch(() => route.params.id, (newId) => {
+    if (newId && typeof newId === 'string') {
+        console.log('플랜 변경 감지, 웹소켓 재연결 시도');
+        stompClient.deactivate();
+        connectWebSocket(newId);
+    }
+});
+
+onUnmounted(() => {
+    if (stompClient.active) {
+        stompClient.deactivate();
+        console.log('웹소켓 연결 해제');
+    }
+});
 
 </script>
 

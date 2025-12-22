@@ -13,7 +13,7 @@
       </div>
 
       <div class="items-container">
-        <ScheduleBlock v-for="item in data.items" :key="item.id" :item="item" :unit-height="80"
+        <ScheduleBlock v-for="item in data.items" :key="item.blockId" :item="item" :unit-height="80"
           @remove="handleRemoveItem" />
       </div>
     </div>
@@ -25,6 +25,7 @@
 import { usePlanStore } from '@/stores/plan';
 import type { DailyScheduleDTO, ScheduleItemDTO, PlaceItemDTO } from '@/types/plan';
 import ScheduleBlock from '@/components/plan/ScheduleBlock.vue';
+import { minutesToTimeString } from '@/utils/time';
 
 const props = defineProps<{ data: DailyScheduleDTO }>();
 const planStore = usePlanStore();
@@ -55,6 +56,8 @@ const handleDrop = (event: DragEvent) => {
   const minutesFromStart = stepCount * STEP_MINUTES;
   const newStartTime = START_TIME_OFFSET + minutesFromStart;
 
+  const startTimeStr = minutesToTimeString(newStartTime);
+
   // 데이터 타입 확인 (이동인지, 신규 추가인지)
   const rawJson = event.dataTransfer.getData('application/json');
   const rawPlace = event.dataTransfer.getData('PLACE');
@@ -65,10 +68,10 @@ const handleDrop = (event: DragEvent) => {
     const dragData = JSON.parse(rawJson);
     if (dragData.type === 'MOVE_ITEM') {
       planStore.moveScheduleItem({
-        itemId: dragData.itemId,
+        blockId: dragData.blockId,
         fromDay: dragData.fromDay,
         toDay: props.data.dayNumber,
-        newStartTime: newStartTime
+        newStartTime: startTimeStr
       });
       return;
     }
@@ -77,42 +80,34 @@ const handleDrop = (event: DragEvent) => {
   // 2. 신규 장소 추가 (PLACE)
   if (rawPlace) {
     const placeData: PlaceItemDTO = JSON.parse(rawPlace);
-    const newItem: Omit<ScheduleItemDTO, 'id'> = {
-      type: 'PLACE',
+    console.log("📍 드롭된 장소 데이터 전체:", placeData);
+
+    // 스토어의 새 함수 호출 (인자 형식 맞춤)
+    planStore.requestAddScheduleBlock({
+      attractionId: Number(placeData.id), // String id를 Number로 변환
       day: props.data.dayNumber,
-      startTime: newStartTime,
-      endTime: newStartTime + 30, // 기본 30분
-      durationTime: 30,
-      title: placeData.title,
-      categoryCode: placeData.categoryCode,
-      category: placeData.category,
-      placeId: placeData.id,
-      memoContents: []
-    };
-    planStore.addScheduleItem(props.data.dayNumber, newItem);
+      startTime: startTimeStr,
+      title: placeData.title
+    });
+    return;
   }
 
   // 3. 신규 메모 추가 (MEMO)
   if (rawMemo) {
     const memoData = JSON.parse(rawMemo);
 
-    const newItem: Omit<ScheduleItemDTO, 'id'> = {
-      type: 'MEMO',
+    planStore.requestAddScheduleBlock({
+      attractionId: null, // 메모는 attractionId가 없음
       day: props.data.dayNumber,
-      startTime: newStartTime,
-      durationTime: 30,
-      endTime: newStartTime + 30,
-      title: memoData.title,
-      memoContents: []
-    };
-
-    planStore.addScheduleItem(props.data.dayNumber, newItem);
+      startTime: startTimeStr,
+      title: memoData.title
+    });
     return;
   }
 };
 
-const handleRemoveItem = (itemId: string) => {
-  planStore.removeScheduleItem(props.data.dayNumber, itemId);
+const handleRemoveItem = (blockId: number) => {
+  planStore.removeScheduleItem(props.data.dayNumber, blockId);
 };
 
 </script>

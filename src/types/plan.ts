@@ -14,7 +14,6 @@ export interface PlanMemberDTO {
   id: string;
   userId: string;
   planId: string;
-
   name: string;
   nickname: string | null;
   profileImageUrl: string | null;
@@ -37,33 +36,28 @@ export interface PlaceItemDTO {
   latitude: number;
   longitude: number;
   address: string;
-
-  memoContents: MemoDTO[];
 }
 
 export type ScheduleItemType = "PLACE" | "MEMO";
 
 export interface ScheduleItemDTO {
-  id: string;
-  type: ScheduleItemType;
-
+  blockId: number;
   day: number;
-  startTime: number;
-  endTime: number;
-  durationTime: number;
-
   title: string;
-  categoryCode?: number;
-  category?: string;
+  startTime: string;
+  endTime: string;
+  durationTime?: number;
 
-  memoContents: MemoDTO[];
-  placeId?: string;
+  memos: MemoDTO[];
+  attraction: PlaceItemDTO | null;
+
+  categoryCode?: number;
+  // category?: string;
 }
 
 export interface DailyScheduleDTO {
   dayNumber: number;
   date: string;
-
   items: ScheduleItemDTO[];
 }
 
