@@ -3,6 +3,8 @@ import { ref } from "vue";
 import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
 import { timeToMinutes, minutesToTimeString } from "@/utils/time";
 import { fetchPlanById } from "@/api/plan";
+import { createScheduleItem } from "@/api/schedule";
+import { stompClient } from "@/utils/websocket";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
@@ -27,37 +29,69 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
+  const handleSocketEvent = (payload: { event: string; data: any }) => {
+    if (!planData.value) return;
+    const { event, data } = payload;
+
+    switch (event) {
+      case "BLOCK_CREATED":
+        applyCreatedBlock(data);
+        console.log("일정 생성 발생:", data);
+        break;
+      case "BLOCK_MOVED":
+        console.log("일정 이동 발생:", data);
+        break;
+      case "BLOCK_DELETED":
+        console.log("일정 삭제 발생:", data);
+        break;
+      case "BLOCK_RESIZED":
+        console.log("일정 리사이징 발생:", data);
+        break;
+    }
+  };
+
   // 1. 드래그 앤 드롭으로 일정 추가
-  const addScheduleItem = (
-    dayNumber: number,
-    newItem: Omit<ScheduleItemDTO, "blockId"> // "id"는 제외하고 받음
-  ) => {
+  const requestAddScheduleBlock = async (payload: {
+    attractionId: number | null;
+    day: number;
+    startTime: string;
+    title: string;
+  }) => {
     if (!planData.value) return;
 
-    const targetDay = planData.value.dailySchedules.find(
-      (d) => d.dayNumber === dayNumber
+    try {
+      await createScheduleItem(String(planData.value.id), payload);
+      console.log("일정 생성 요청 성공");
+    } catch (error) {
+      console.error("일정 생성 요청 실패:", error);
+    }
+  };
+
+  const applyCreatedBlock = (data: any) => {
+    const targetDay = planData.value?.dailySchedules.find(
+      (d) => d.dayNumber === data.day
     );
     if (!targetDay) return;
 
-    const newStart = timeToMinutes(newItem.startTime);
-    const newEnd = timeToMinutes(newItem.endTime);
-
-    const isOverlapping = targetDay.items.some((item) => {
-      const itemStart = timeToMinutes(item.startTime);
-      const itemEnd = timeToMinutes(item.endTime);
-      return itemStart < newEnd && newStart < itemEnd;
-    });
-
-    if (isOverlapping) {
+    if (targetDay.items.some((i) => String(i.blockId) === String(data.blockId)))
       return;
-    }
 
-    const finalItem: ScheduleItemDTO = {
-      ...newItem,
-      blockId: Date.now(), // 임시 id 생성
-    } as ScheduleItemDTO;
+    const newItem: ScheduleItemDTO = {
+      blockId: data.blockId,
+      day: data.day,
+      title: data.title,
+      startTime: data.startTime.substring(0, 5),
+      endTime: data.endTime.substring(0, 5),
+      durationTime: timeToMinutes(data.endTime) - timeToMinutes(data.startTime),
+      memos: data.memos || [],
+      attraction: data.attraction || null,
+      categoryCode: data.attraction?.categoryCode,
+    };
 
-    targetDay.items.push(finalItem);
+    targetDay.items.push(newItem);
+    targetDay.items.sort(
+      (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+    );
   };
 
   // 2. 일정 리사이징
@@ -235,7 +269,10 @@ export const usePlanStore = defineStore("plan", () => {
     isLoading,
     loadPlan,
     setPlanData,
-    addScheduleItem,
+
+    requestAddScheduleBlock,
+    handleSocketEvent,
+
     updateItemDuration,
     moveScheduleItem,
     removeScheduleItem,
