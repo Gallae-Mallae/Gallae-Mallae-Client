@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, defineExpose } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Dropdown from '@/components/sidebar/Dropdown.vue';
 
 // 변경된 데이터 구조 import
@@ -70,9 +70,9 @@ const getFormData = (): SearchData => {
 
     return {
         sidoName: selectedSidoName.value === '전체' ? '' : selectedSidoName.value,
-        sidoCode: sidoObj?.code,
+        sidoCode: sidoObj?.code ?? 0,
         gugunName: selectedGugunName.value === '전체' ? '' : selectedGugunName.value,
-        gugunCode: gugunObj?.code,
+        gugunCode: gugunObj?.code ?? 0,
         query: searchQuery.value.trim(),
     };
 };
