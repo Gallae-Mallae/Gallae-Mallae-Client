@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError } from 'axios';
 import router from '@/router'; 
 
-const BACKEND_DOMAIN = 'http://localhost:8080'; //
+const BACKEND_DOMAIN = 'https://api.gallaemallae.site'; //
 
 const axiosInstance: AxiosInstance = axios.create({
     baseURL: BACKEND_DOMAIN + '/api',

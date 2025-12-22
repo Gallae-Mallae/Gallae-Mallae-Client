@@ -28,7 +28,7 @@ const closeLoginModal = () => {
 };
 
 // 로그인 페이지로 이동
-const BACKEND_DOMAIN = 'http://localhost:8080';
+const BACKEND_DOMAIN = 'https://api.gallaemallae.site';
 const REDIRECT_PATH = '/oauth2/redirect';
 
 const handleKakaoLogin = () => {
