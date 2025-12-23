@@ -404,6 +404,12 @@ const handleSearchStateChange = (hasSearched: boolean) => {
 
 const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: number, level?: number }, title?: string) => {
   console.log(`[Search] 지도 하이라이트: ${placeId} (${coords.lat}, ${coords.lng})`);
+  
+  // 챗봇 모달이 열려있다면 닫기 (지도를 보기 위함)
+  if (isChatBotOpen.value) {
+      isChatBotOpen.value = false;
+  }
+
   if (mapInstance.value) {
     const moveLatLon = new (window as any).kakao.maps.LatLng(coords.lat, coords.lng);
     
