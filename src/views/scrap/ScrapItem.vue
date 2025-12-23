@@ -3,9 +3,9 @@
         <ScrapHeader :title="currentFolderName" @back="$emit('back')" />
 
         <div class="item-grid">
-            <ScrapItemCard v-for="item in scrapStore.scraps" :key="item.scrapId" :item="item" @edit="handleEditItem"
-                @delete="handleDeleteItem" />
             <ScrapAddItemCard @click="$emit('add-item')" />
+            <ScrapItemCard v-for="item in sortedScraps" :key="item.scrapId" :item="item" @edit="handleEditItem"
+                @delete="handleDeleteItem" />
         </div>
     </div>
 </template>
@@ -21,6 +21,22 @@ const props = defineProps<{ folderId: number }>();
 const emit = defineEmits(['back', 'add-item', 'edit-item']);
 
 const scrapStore = useScrapStore();
+
+const sortedScraps = computed(() => {
+    if (!scrapStore.scraps || scrapStore.scraps.length === 0) return [];
+
+    return [...scrapStore.scraps].sort((a, b) => {
+
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+        if (dateB === dateA) {
+            return b.scrapId - a.scrapId;
+        }
+
+        return dateB - dateA;
+    });
+});
 
 const currentFolderName = computed(() => {
     const folder = scrapStore.folders.find(f => f.folderId === props.folderId);

@@ -59,10 +59,10 @@ watch(
 );
 
 const handleSave = async () => {
-    if (!formData.originalLink.trim()) {
-        alert('URL을 입력해주세요.');
-        return;
-    }
+    // if (!formData.originalLink.trim()) {
+    //     alert('URL을 입력해주세요.');
+    //     return;
+    // }
 
     try {
         if (props.initialData?.scrapId) {

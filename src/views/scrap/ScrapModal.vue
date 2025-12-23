@@ -67,6 +67,7 @@ const handleFormBack = () => {
     overflow-y: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    user-select: none; 
 }
 
 .scrap-modal-content::-webkit-scrollbar {
