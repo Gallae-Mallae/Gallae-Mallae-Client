@@ -15,7 +15,7 @@
             <div class="card-content" @click="$emit('click')">
                 <div class="card-info">
                     <h3 class="folder-name">{{ folder.name }}</h3>
-                    <p class="link-count">{{ folder.itemCount || 0 }}개의 링크</p>
+                    <p class="link-count">{{ folder.scrapCount || 0 }}개의 링크</p>
                 </div>
             </div>
         </template>

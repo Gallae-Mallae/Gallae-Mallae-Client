@@ -1,6 +1,6 @@
 <template>
     <div class="item-card" @click="handleCardClick">
-        <img :src="item.imageUrl" :alt="item.title" class="item-image" referrerpolicy="no-referrer" />
+        <img :src="item.imageUrl" :alt="item.title" class="item-image"/>
 
         <div class="item-overlay">
             <div class="item-info">
@@ -35,7 +35,7 @@ const handleCardClick = () => {
 };
 
 const handleDelete = () => {
-    if (confirm(`'${props.item.title}' 링크를 삭제하시겠습니까?`)) {
+    if (confirm(`'${props.item.title}' 링크를 삭제하겠습니까?`)) {
         emit('delete', props.item.scrapId);
     }
 };

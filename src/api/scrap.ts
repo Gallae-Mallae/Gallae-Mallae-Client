@@ -5,7 +5,7 @@ import type { ScrapFolderDTO, ScrapDTO } from "@/types/scrap";
 export interface ScrapFolderResponse {
   folderId: number;
   name: string;
-  itemCount: number;
+  scrapCount: number;
   folderImageUrl: string | null;
 }
 
@@ -15,7 +15,7 @@ export const fetchScrapFolders = async (): Promise<ScrapFolderDTO[]> => {
     folderId: folder.folderId,
     name: folder.name,
     folderImageUrl: folder.folderImageUrl,
-    itemCount: folder.itemCount,
+    scrapCount: folder.scrapCount,
   }));
 };
 
