@@ -1,7 +1,7 @@
 <template>
   <div class="plan-create-card" @click="handleClick">
     <div class="content-wrapper">
-      <img src="@/assets/icons/ic_add_plan.png" alt="새 일정 만들기 아이콘" class="add-icon" />
+      <img src="@/assets/icons/ic_add.png" alt="새 일정 만들기 아이콘" class="add-icon" />
       <p class="create-text">{{ strings.ADD_PLAN }}</p>
     </div>
   </div>

@@ -51,7 +51,6 @@ const modalStyle = computed(() => ({
 </script>
 
 <style scoped>
-
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -90,13 +89,13 @@ const modalStyle = computed(() => ({
 }
 
 .close-icon {
-  width: 20px;
-  height: 20px;
-  transition: opacity 0.2s;
+    width: 20px;
+    height: 20px;
+    transition: opacity 0.2s;
 }
 
 .close-button:hover .close-icon {
-  opacity: 0.7;
+    opacity: 0.7;
 }
 
 .modal-content {
