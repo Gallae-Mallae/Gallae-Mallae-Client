@@ -1,44 +1,49 @@
 <template>
     <div class="scrap-item-view">
-        <ScrapHeader title="제주도 감성 카페" @back="$emit('back')" />
+        <ScrapHeader :title="currentFolderName" @back="$emit('back')" />
 
         <div class="item-grid">
-            <ScrapItemCard v-for="item in items" :key="item.scrapId" :item="item" />
+            <ScrapItemCard v-for="item in scrapStore.scraps" :key="item.scrapId" :item="item" @edit="handleEditItem"
+                @delete="handleDeleteItem" />
             <ScrapAddItemCard @click="$emit('add-item')" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { ScrapDTO } from '@/types/scrap';
+import { onMounted, onUnmounted, computed } from 'vue';
+import { useScrapStore } from '@/stores/scrap';
 import ScrapHeader from '@/components/scrap/ScrapHeader.vue';
 import ScrapItemCard from '@/components/scrap/ScrapItemCard.vue';
 import ScrapAddItemCard from '@/components/scrap/ScrapAddItemCard.vue';
 
-const props = defineProps<{ folderId: number | null }>();
-defineEmits(['back', 'add-item']);
+const props = defineProps<{ folderId: number }>();
+const emit = defineEmits(['back', 'add-item', 'edit-item']);
 
-const items = ref<ScrapDTO[]>([
-    {
-        scrapId: 101,
-        folderId: 1,
-        title: '바다뷰 카페',
-        content: '내용입니다',
-        description: '제주도 푸른 바다가 한눈에 보이는 멋진 카페입니다.',
-        originalLink: 'https://...',
-        imageUrl: 'https://picsum.photos/300'
-    },
-    {
-        scrapId: 102,
-        folderId: 1,
-        title: '석양 명소',
-        content: '내용입니다',
-        description: '노을이 질 때 가면 인생샷을 건질 수 있는 곳이에요.',
-        originalLink: 'https://...',
-        imageUrl: 'https://picsum.photos/301'
+const scrapStore = useScrapStore();
+
+const currentFolderName = computed(() => {
+    const folder = scrapStore.folders.find(f => f.folderId === props.folderId);
+    return folder ? folder.name : '스크랩북';
+});
+
+onMounted(async () => {
+    if (props.folderId) {
+        await scrapStore.loadScraps(props.folderId);
     }
-]);
+});
+
+onUnmounted(() => {
+    scrapStore.clearScraps();
+});
+
+const handleEditItem = (item: any) => {
+    emit('edit-item', item);
+};
+
+const handleDeleteItem = async (scrapId: number) => {
+    await scrapStore.removeScrap(props.folderId, scrapId);
+};
 </script>
 
 <style scoped>

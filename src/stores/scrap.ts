@@ -6,10 +6,15 @@ import {
   createScrapFolder,
   updateScrapFolder,
   deleteScrapFolder,
+  fetchScrapItems,
+  createScrapItem,
+  updateScrapItem,
+  deleteScrapItem,
 } from "@/api/scrap";
 
 export const useScrapStore = defineStore("scrap", () => {
   const folders = ref<ScrapFolderDTO[]>([]);
+  const scraps = ref<ScrapDTO[]>([]);
   const isLoading = ref(false);
 
   // 폴더 목록 조회
@@ -37,7 +42,6 @@ export const useScrapStore = defineStore("scrap", () => {
   // 폴더 수정
   const editFolder = async (folderId: number, name: string) => {
     try {
-      // API 변경에 따라 { name } 객체 형태로 전달
       await updateScrapFolder(folderId, { name });
       await loadFolders(); // 수정 후 목록 갱신
     } catch (error) {
@@ -59,12 +63,89 @@ export const useScrapStore = defineStore("scrap", () => {
     }
   };
 
+  // 링크 목록 조회
+  const loadScraps = async (folderId: number) => {
+    isLoading.value = true;
+    try {
+      const data = await fetchScrapItems(folderId);
+      scraps.value = data;
+    } catch (error) {
+      console.error("링크 조회 실패:", error);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const clearScraps = () => {
+    scraps.value = [];
+  };
+
+  // 링크 추가
+  const addScrap = async (
+    folderId: number,
+    data: {
+      title: string;
+      description: string | null;
+      originalLink: string;
+    }
+  ) => {
+    try {
+      const requestBody = {
+        title: data.title,
+        description: data.description,
+        originalLink: data.originalLink,
+        content: null,
+        imageUrl: null,
+      };
+
+      await createScrapItem(folderId, requestBody);
+      await loadScraps(folderId);
+    } catch (error) {
+      console.error("링크 추가 실패:", error);
+      throw error;
+    }
+  };
+
+  // 링크 수정
+  const updateScrap = async (
+    folderId: number,
+    scrapId: number,
+    data: {
+      title: string;
+      description: string | null;
+      originalLink: string;
+    }
+  ) => {
+    try {
+      await updateScrapItem(folderId, scrapId, data);
+      await loadScraps(folderId); // 수정 후 목록 갱신
+    } catch (error) {
+      console.error("링크 수정 실패:", error);
+    }
+  };
+
+  // 링크 삭제
+  const removeScrap = async (folderId: number, scrapId: number) => {
+    try {
+      await deleteScrapItem(folderId, scrapId);
+      await loadScraps(folderId); // 삭제 후 목록 갱신
+    } catch (error) {
+      console.error("링크 삭제 실패:", error);
+    }
+  };
+
   return {
     folders,
+    scraps,
     isLoading,
     loadFolders,
     addFolder,
     editFolder,
+    loadScraps,
     removeFolder,
+    clearScraps,
+    addScrap,
+    updateScrap,
+    removeScrap,
   };
 });

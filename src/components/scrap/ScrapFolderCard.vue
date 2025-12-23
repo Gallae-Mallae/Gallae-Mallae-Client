@@ -37,7 +37,7 @@ import type { ScrapFolderDTO } from '@/types/scrap';
 import { useScrapStore } from '@/stores/scrap';
 
 const props = defineProps<{ folder: ScrapFolderDTO }>();
-const emit = defineEmits(['click']); // 이제 update, delete emit은 필요 없음
+const emit = defineEmits(['click']);
 
 const scrapStore = useScrapStore();
 const isEditing = ref(false);
@@ -151,7 +151,7 @@ const handleDelete = async () => {
     justify-content: flex-end;
     align-items: flex-start;
     padding: 12px;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .folder-name {

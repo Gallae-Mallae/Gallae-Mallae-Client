@@ -10,7 +10,8 @@ export interface ScrapDTO {
   folderId: number;
   title: string;
   content: string;
-  description: string;
+  description: string | null;
   originalLink: string;
   imageUrl: string;
+  createdAt: string;
 }

@@ -5,10 +5,11 @@
             <ScrapFolder v-if="currentView === 'FOLDER'" @select-folder="handleSelectFolder"
                 @add-folder="handleOpenForm('FOLDER')" />
 
-            <ScrapItem v-else-if="currentView === 'ITEM'" :folderId="selectedFolderId" @back="currentView = 'FOLDER'"
-                @add-item="handleOpenForm('ITEM')" />
+            <ScrapItem v-else-if="currentView === 'ITEM'" :folderId="selectedFolderId!" @back="currentView = 'FOLDER'"
+                @add-item="handleOpenForm('ITEM')" @edit-item="handleOpenEditForm" />
 
-            <ScrapForm v-else-if="currentView === 'FORM'" :mode="formMode" @back="handleFormBack" />
+            <ScrapForm v-else-if="currentView === 'FORM'" :mode="formMode" :folderId="selectedFolderId!"
+                :initialData="selectedScrap" @back="handleFormBack" @saved="handleFormBack" />
 
         </div>
     </BaseModal>
@@ -17,9 +18,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
-import ScrapFolder from './ScrapFolder.vue';
-import ScrapItem from './ScrapItem.vue';
-import ScrapForm from './ScrapForm.vue';
+import ScrapFolder from '@/views/scrap/ScrapFolder.vue';
+import ScrapItem from '@/views/scrap/ScrapItem.vue';
+import ScrapForm from '@/views/scrap/ScrapForm.vue';
+import type { ScrapDTO } from '@/types/scrap';
 
 defineProps<{
     isVisible: boolean;
@@ -31,6 +33,7 @@ type ViewType = 'FOLDER' | 'ITEM' | 'FORM';
 const currentView = ref<ViewType>('FOLDER');
 const selectedFolderId = ref<number | null>(null);
 const formMode = ref<'FOLDER' | 'ITEM'>('ITEM');
+const selectedScrap = ref<ScrapDTO | null>(null);
 
 const handleSelectFolder = (folderId: number) => {
     selectedFolderId.value = folderId;
@@ -38,7 +41,14 @@ const handleSelectFolder = (folderId: number) => {
 };
 
 const handleOpenForm = (mode: 'FOLDER' | 'ITEM') => {
+    selectedScrap.value = null;
     formMode.value = mode;
+    currentView.value = 'FORM';
+};
+
+const handleOpenEditForm = (item: ScrapDTO) => {
+    selectedScrap.value = item;
+    formMode.value = 'ITEM';
     currentView.value = 'FORM';
 };
 

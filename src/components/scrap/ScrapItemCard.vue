@@ -1,6 +1,6 @@
 <template>
-    <div class="item-card">
-        <img :src="item.imageUrl" :alt="item.title" class="item-image" />
+    <div class="item-card" @click="handleCardClick">
+        <img :src="item.imageUrl" :alt="item.title" class="item-image" referrerpolicy="no-referrer" />
 
         <div class="item-overlay">
             <div class="item-info">
@@ -9,10 +9,11 @@
             </div>
 
             <div class="item-actions">
-                <button class="action-btn" @click.stop="$emit('edit', item.scrapId)">
+                <button class="action-btn" @click.stop="$emit('edit', item)">
                     <img src="@/assets/icons/ic_edit_scrap.png" alt="수정" class="action-icon" />
                 </button>
-                <button class="action-btn" @click.stop="$emit('delete', item.scrapId)">
+
+                <button class="action-btn" @click.stop="handleDelete">
                     <img src="@/assets/icons/ic_delete_scrap.png" alt="삭제" class="action-icon" />
                 </button>
             </div>
@@ -23,8 +24,21 @@
 <script setup lang="ts">
 import type { ScrapDTO } from '@/types/scrap';
 
-defineProps<{ item: ScrapDTO }>();
-defineEmits(['edit', 'delete']);
+const props = defineProps<{ item: ScrapDTO }>();
+
+const emit = defineEmits(['edit', 'delete']);
+
+const handleCardClick = () => {
+    if (props.item.originalLink) {
+        window.open(props.item.originalLink, '_blank');
+    }
+};
+
+const handleDelete = () => {
+    if (confirm(`'${props.item.title}' 링크를 삭제하시겠습니까?`)) {
+        emit('delete', props.item.scrapId);
+    }
+};
 </script>
 
 <style scoped>

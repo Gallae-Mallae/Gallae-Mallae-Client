@@ -1,16 +1,16 @@
 <template>
     <div class="scrap-form-view">
-        <ScrapHeader :title="mode === 'FOLDER' ? '새 폴더 생성' : '새 링크 저장'" @back="$emit('back')" />
+        <ScrapHeader :title="initialData ? '링크 수정' : '새 링크 저장'" @back="$emit('back')" />
 
         <div class="form-container">
             <div class="input-group">
-                <label>제목</label>
-                <input type="text" v-model="formData.title" placeholder="예: OO 맛집 리스트" />
+                <label>링크 URL</label>
+                <input type="text" v-model="formData.originalLink" placeholder="http://..." />
             </div>
 
-            <div class="input-group" v-if="mode === 'ITEM'">
-                <label>링크 URL</label>
-                <input type="text" v-model="formData.url" placeholder="http://..." />
+            <div class="input-group">
+                <label>제목</label>
+                <input type="text" v-model="formData.title" placeholder="사이트 제목을 입력해주세요." />
             </div>
 
             <div class="input-group">
@@ -19,7 +19,9 @@
             </div>
 
             <div class="button-group">
-                <button class="save-btn" @click="handleSave">저장하기</button>
+                <button class="save-btn" @click="handleSave">
+                    {{ initialData ? '수정하기' : '저장하기' }}
+                </button>
                 <button class="cancel-btn" @click="$emit('back')">취소</button>
             </div>
         </div>
@@ -27,21 +29,59 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
+import { useScrapStore } from '@/stores/scrap';
 import ScrapHeader from '@/components/scrap/ScrapHeader.vue';
+import type { ScrapDTO } from '@/types/scrap';
 
-const props = defineProps<{ mode: 'FOLDER' | 'ITEM' }>();
+const props = defineProps<{
+    folderId: number;
+    initialData?: ScrapDTO | null;
+}>();
+
 const emit = defineEmits(['back', 'saved']);
+const scrapStore = useScrapStore();
 
 const formData = reactive({
     title: '',
-    url: '',
+    originalLink: '',
     description: ''
 });
 
-const handleSave = () => {
-    console.log('저장 데이터:', formData);
-    emit('saved');
+watch(
+    () => props.initialData,
+    (newData) => {
+        formData.title = newData?.title || '';
+        formData.originalLink = newData?.originalLink || '';
+        formData.description = newData?.description || '';
+    },
+    { immediate: true }
+);
+
+const handleSave = async () => {
+    if (!formData.originalLink.trim()) {
+        alert('URL을 입력해주세요.');
+        return;
+    }
+
+    try {
+        if (props.initialData?.scrapId) {
+            await scrapStore.updateScrap(props.folderId, props.initialData.scrapId, {
+                title: formData.title,
+                originalLink: formData.originalLink,
+                description: formData.description,
+            });
+        } else {
+            await scrapStore.addScrap(props.folderId, {
+                title: formData.title,
+                originalLink: formData.originalLink,
+                description: formData.description,
+            });
+        }
+        emit('saved');
+    } catch (error) {
+        alert(props.initialData ? '수정 실패' : '저장 실패');
+    }
 };
 </script>
 
