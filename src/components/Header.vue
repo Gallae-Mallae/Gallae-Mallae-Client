@@ -15,9 +15,15 @@
 
     <div class="header-right">
       <template v-if="!authStore.isCheckingAuth">
-        <User v-if="authStore.isLoggedIn && authStore.user" :user="authStore.user" :show-name="false"
-          @click="handleProfileClick" />
-        <button v-else class="login-button" @click="openModal">
+        <div v-if="authStore.isLoggedIn && authStore.user" class="user-actions">
+
+          <button class="link-button" @click="openScrapModal">
+            <img src="@/assets/icons/ic_scrap.png" alt="스크랩북" class="link-icon" />
+          </button>
+          <User :user="authStore.user" :show-name="false" @click="handleProfileClick" />
+        </div>
+
+        <button v-else class="login-button" @click="openLoginModal">
           {{ strings.BUTTON_LOGIN }}
         </button>
       </template>
@@ -27,7 +33,8 @@
 
   </header>
 
-  <LoginModal :is-visible="isModalOpen" @close="closeModal" />
+  <LoginModal :is-visible="isLoginModalOpen" @close="closeLoginModal" />
+  <ScrapModal :is-visible="isScrapModalOpen" @close="closeScrapModal" />
 </template>
 
 <script setup lang="ts">
@@ -35,19 +42,19 @@
 import { ref } from 'vue';
 import strings from '@/assets/values/strings.header.json';
 import LoginModal from '@/views/login/LoginModal.vue';
+import ScrapModal from '@/views/scrap/ScrapModal.vue';
 import User from '@/components/User.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
-const isModalOpen = ref(false);
 
-const openModal = () => {
-  isModalOpen.value = true;
-};
+const isLoginModalOpen = ref(false);
+const openLoginModal = () => isLoginModalOpen.value = true;
+const closeLoginModal = () => isLoginModalOpen.value = false;
 
-const closeModal = () => {
-  isModalOpen.value = false;
-};
+const isScrapModalOpen = ref(false);
+const openScrapModal = () => isScrapModalOpen.value = true;
+const closeScrapModal = () => isScrapModalOpen.value = false;
 
 const handleProfileClick = () => {
   // 프로필 클릭 시 처리 로직
@@ -97,8 +104,33 @@ const handleProfileClick = () => {
 .header-right {
   display: flex;
   align-items: center;
-  min-width: 60px;
+  min-width: 100px;
   justify-content: flex-end;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: opacity 0.2s;
+}
+
+.link-button:hover {
+  opacity: 0.85;
+}
+
+.link-icon {
+  width: 25px;
+  height: 25px;
 }
 
 .login-button {
