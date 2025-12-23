@@ -1,8 +1,8 @@
 export interface ScrapFolderDTO {
   folderId: number;
   name: string;
-  folderImageUrl: string;
-  itemCount?: number;
+  folderImageUrl: string | null;
+  itemCount: number;
 }
 
 export interface ScrapDTO {

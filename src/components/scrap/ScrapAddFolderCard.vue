@@ -18,36 +18,34 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
+import { useScrapStore } from '@/stores/scrap';
 
-const emit = defineEmits<{
-    (e: 'add', name: string): void;
-}>();
+const scrapStore = useScrapStore();
 
 const isEditing = ref(false);
 const folderName = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
-// 카드 클릭 시 편집 모드로 전환
 const handleCardClick = async () => {
     if (!isEditing.value) {
         isEditing.value = true;
-        // 입력창에 바로 포커스 주기
         await nextTick();
         inputRef.value?.focus();
     }
 };
 
-// 확인 버튼 클릭
-const handleConfirm = () => {
-    if (folderName.value.trim()) {
-        emit('add', folderName.value);
-        resetForm();
-    } else {
-        alert('폴더 이름을 입력해주세요.');
+const handleConfirm = async () => {
+    const name = folderName.value.trim();
+    if (name) {
+        try {
+            await scrapStore.addFolder(name);
+            resetForm();
+        } catch (error) {
+            console.error('폴더 생성 실패:', error);
+        }
     }
 };
 
-// 취소 버튼 클릭
 const handleCancel = () => {
     resetForm();
 };

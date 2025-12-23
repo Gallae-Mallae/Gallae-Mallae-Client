@@ -5,37 +5,27 @@
         </div>
 
         <div class="folder-grid">
-            <ScrapAddFolderCard @add="handleAddNewFolder" />
+            <ScrapAddFolderCard />
 
-            <ScrapFolderCard v-for="folder in folders" :key="folder.folderId" :folder="folder"
+            <ScrapFolderCard v-for="folder in scrapStore.folders" :key="folder.folderId" :folder="folder"
                 @click="$emit('select-folder', folder.folderId)" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { ScrapFolderDTO } from '@/types/scrap';
+import { onMounted } from 'vue';
 import ScrapFolderCard from '@/components/scrap/ScrapFolderCard.vue';
 import ScrapAddFolderCard from '@/components/scrap/ScrapAddFolderCard.vue';
+import { useScrapStore } from '@/stores/scrap';
 
-// 임시 더미 데이터
-const folders = ref<ScrapFolderDTO[]>([
-    { folderId: 1, name: '제주도 감성 카페', folderImageUrl: 'https://picsum.photos/200', itemCount: 2 },
-    { folderId: 2, name: '서귀포 맛집 리스트', folderImageUrl: 'https://picsum.photos/201', itemCount: 7 }
-]);
+const scrapStore = useScrapStore();
 
-defineEmits(['select-folder', 'add-folder']);
+onMounted(() => {
+    scrapStore.loadFolders();
+});
 
-const handleAddNewFolder = (name: string) => {
-    const newFolder: ScrapFolderDTO = {
-        folderId: Date.now(), // 임시 ID
-        name: name,
-        folderImageUrl: `https://picsum.photos/200?sig=${Date.now()}`,
-        itemCount: 0
-    };
-    folders.value.unshift(newFolder); // 맨 앞에 추가
-};
+defineEmits(['select-folder']);
 </script>
 
 <style scoped>
