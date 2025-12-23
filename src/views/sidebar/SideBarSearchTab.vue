@@ -73,7 +73,7 @@ const router = useRouter();
 const route = useRoute(); // test2: 현재 경로 확인용
 
 // [test2 병합] 플랜 페이지 여부 확인
-const isPlanPage = computed(() => route.path.startsWith('/plan/'));
+const isPlanPage = computed(() => route.path.startsWith('/plan'));
 
 // Props 정의
 const props = defineProps<{
@@ -82,7 +82,7 @@ const props = defineProps<{
 
 // Emits 정의
 const emit = defineEmits<{
-    (e: 'map-highlight', placeId: string, coords: { lat: number, lng: number, level?: number }): void;
+    (e: 'map-highlight', placeId: string, coords: { lat: number, lng: number, level?: number }, title?: string): void;
     (e: 'mark-action', placeId: string): void;
     (e: 'state-change', hasSearched: boolean): void;
     (e: 'search-request', data: SearchData): void;
@@ -178,7 +178,40 @@ const handleSearch = async (data: SearchData) => {
         alert("검색어, 지역 또는 카테고리를 선택해주세요.");
         return;
     }
-    emit('search-request', data);
+
+    if (isPlanPage.value) {
+        // Plan 페이지일 경우: 부모에게 의존하지 않고 자체적으로 검색 수행
+        
+        // 1. 가상의 Bounds 설정 (대한민국 전체 범위 하드코딩)
+        // Kakao Maps API가 없어도 동작하도록 일반 객체 구조로 생성
+        const defaultBounds = {
+            getSouthWest: () => ({ getLat: () => 33.0, getLng: () => 124.0 }),
+            getNorthEast: () => ({ getLat: () => 38.5, getLng: () => 132.0 })
+        };
+        currentBounds.value = defaultBounds;
+
+        // 2. 필터 설정
+        currentFilters.value = {
+            sido: data.sidoCode || undefined,
+            guguns: data.gugunCode || undefined,
+            keyword: data.query || undefined,
+            contenttype: props.selectedCategory || undefined
+        };
+
+        // 3. 상태 초기화 및 데이터 로드
+        page.value = 0;
+        hasNext.value = false;
+        hasSearched.value = true;
+        
+        if (scrollContainer.value) {
+            scrollContainer.value.scrollTop = 0;
+        }
+
+        await fetchSidebarData(false);
+    } else {
+        // Search 페이지일 경우: 기존대로 부모에게 이벤트 전달 (지도 연동)
+        emit('search-request', data);
+    }
 };
 
 const handleReset = () => {
@@ -248,11 +281,27 @@ const handleItemClick = (placeId: string, coords: { lat: number, lng: number }) 
 };
 
 const handleShowOnMap = (detail: AttractionDetailResponse) => {
-    emit('map-highlight', String(detail.attractionId), { 
-        lat: detail.latitude, 
-        lng: detail.longitude,
-        level: 2
-    });
+    if (isPlanPage.value) {
+        // Plan 페이지에서는 지도가 없으므로 Search 페이지로 이동하여 표시
+        router.push({
+            path: '/search',
+            query: {
+                action: 'highlight',
+                placeId: detail.attractionId,
+                lat: detail.latitude,
+                lng: detail.longitude,
+                title: detail.title // 제목 추가
+            }
+        });
+        isModalOpen.value = false; // 모달 닫기
+    } else {
+        // Search 페이지에서는 바로 지도 이동
+        emit('map-highlight', String(detail.attractionId), { 
+            lat: detail.latitude, 
+            lng: detail.longitude,
+            level: 2
+        }, detail.title); // 제목 추가
+    }
 };
 
 const handleMarkAction = (placeId: string) => {

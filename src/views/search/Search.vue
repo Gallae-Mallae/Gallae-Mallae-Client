@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router'; // 라우터 훅 추가
 import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
 import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
@@ -16,6 +17,9 @@ const contentTypes = [
 ];
 import type { SearchData } from '@/types/sidebar';
 import { getMapAttractions, type MapAttractionResponse, type MapAttractionParams } from '@/api/attraction';
+
+const route = useRoute(); // 라우트 객체
+const router = useRouter(); // 라우터 객체
 
 // 로딩 상태 (초기값 true)
 const isLoading = ref(true);
@@ -384,7 +388,7 @@ const handleSearchStateChange = (hasSearched: boolean) => {
     }
 };
 
-const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: number, level?: number }) => {
+const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: number, level?: number }, title?: string) => {
   console.log(`[Search] 지도 하이라이트: ${placeId} (${coords.lat}, ${coords.lng})`);
   if (mapInstance.value) {
     const moveLatLon = new (window as any).kakao.maps.LatLng(coords.lat, coords.lng);
@@ -400,6 +404,33 @@ const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: n
     // 이동한 위치 기준 마커 새로고침 (클러스터 해제 및 상세 마커 표시)
     showReSearchButton.value = false; // 재검색 버튼 숨김
     await fetchMapMarkers();
+
+    // [중요] 강제 마커 표시 (API 결과와 무관하게 사용자가 선택한 장소를 확실히 표시)
+    if (title) {
+        const content = document.createElement('div');
+        content.className = 'custom-marker-container';
+        content.innerHTML = `
+            <img src="data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2230%22%20height%3D%2242%22%20viewBox%3D%220%200%2030%2042%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M15%200C6.71573%200%200%206.71573%200%2015C0%2026.25%2015%2042%2015%2042C15%2042%2030%2026.25%2030%2015C30%206.71573%2023.2843%200%2015%200Z%22%20fill%3D%22%23EA4335%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23960F0F%22%2F%3E%3C%2Fsvg%3E" class="marker-icon" alt="marker">
+            <span class="marker-title" style="background-color: #fff; border: 2px solid #EA4335; font-weight: bold;">${title}</span>
+        `;
+
+        content.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openGlobalDetailModal(placeId);
+        });
+
+        const overlay = new (window as any).kakao.maps.CustomOverlay({
+            position: moveLatLon,
+            content: content,
+            xAnchor: 0.5,
+            yAnchor: 1.0,
+            clickable: true,
+            zIndex: 9999 // 최상위
+        });
+
+        overlay.setMap(mapInstance.value);
+        customOverlays.value.push(overlay);
+    }
   }
 };
 
@@ -453,11 +484,30 @@ onMounted(() => {
     const onTilesLoaded = () => {
         if (sideBarSearchTabRef.value) {
             console.log('[Search] Initial map load complete. Fetching recommendations...');
-            // API 제약(최소 1개 조건)을 우회하기 위해 공백 키워드 전송 시도
-            sideBarSearchTabRef.value.searchByBounds(map.getBounds(), { keyword: ' ' }, true)
-                .finally(() => {
-                    isLoading.value = false; // 초기 데이터 로드 완료 시 로딩 해제
-                });
+
+            // 1. 쿼리 파라미터 확인 (다른 페이지에서 "지도 보기"로 넘어온 경우)
+            const { action, placeId, lat, lng, title } = route.query;
+            if (action === 'highlight' && placeId && lat && lng) {
+                console.log('[Search] Redirected with highlight action:', placeId);
+                
+                handleMapHighlight(String(placeId), {
+                    lat: Number(lat),
+                    lng: Number(lng),
+                    level: 3 // 상세 보기 줌 레벨
+                }, String(title || '')); // 제목 전달
+
+                // 처리 후 쿼리 파라미터 제거 (URL 깔끔하게)
+                router.replace({ path: '/search', query: {} });
+
+                isLoading.value = false;
+            } else {
+                // 2. 일반 진입 시: 추천 데이터 로드 (기존 로직)
+                // API 제약(최소 1개 조건)을 우회하기 위해 공백 키워드 전송 시도
+                sideBarSearchTabRef.value.searchByBounds(map.getBounds(), { keyword: ' ' }, true)
+                    .finally(() => {
+                        isLoading.value = false; // 초기 데이터 로드 완료 시 로딩 해제
+                    });
+            }
             
             // 리스너 제거 (최초 1회만 실행)
             (window as any).kakao.maps.event.removeListener(map, 'tilesloaded', onTilesLoaded);
