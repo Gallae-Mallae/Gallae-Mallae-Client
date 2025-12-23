@@ -2,10 +2,16 @@
   <aside class="app-sidebar" :class="{ 'is-closed': !isOpen }">
     <div class="sidebar-container">
       <div class="sidebar-tabs">
-        <button :class="['tab-button', { active: activeTab === 'search' }]" @click="activeTab = 'search'">
+        <button 
+          :class="['tab-button', { active: activeTab === 'search' }]" 
+          @click="setTab('search')"
+        >
           {{ strings.TAB_SEARCH }}
         </button>
-        <button :class="['tab-button', { active: activeTab === 'my' }]" @click="activeTab = 'my'">
+        <button 
+          :class="['tab-button', { active: activeTab === 'my' }]" 
+          @click="setTab('my')"
+        >
           {{ strings.TAB_MY }}
         </button>
       </div>
@@ -22,18 +28,24 @@
 </template>
 
 <script setup lang="ts">
-
 import { ref } from 'vue';
 import strings from '@/assets/values/strings.sidebar.json';
 
-// 탭 상태 관리 (기본값 'search')
 const activeTab = ref<'search' | 'my'>('search');
+const isOpen = ref(true); // test2: 사이드바 열림 상태 관리
 
-const isOpen = ref(true);
+// feature/#16: 탭 변경 이벤트를 정의
+const emit = defineEmits(['tab-change']);
 
+// feature/#16: 탭 변경 시 상태 변경 뿐만 아니라 부모에게 알림(emit)
+const setTab = (tab: 'search' | 'my') => {
+    activeTab.value = tab;
+    emit('tab-change', tab);
+};
 </script>
 
 <style scoped>
+/* test2의 스타일(애니메이션, 토글 기능 등)을 전적으로 채택 */
 .app-sidebar {
   position: relative;
   width: 380px;
@@ -103,20 +115,19 @@ const isOpen = ref(true);
 .sidebar-tabs {
   display: flex;
   border-bottom: 1px solid var(--color-gray-light);
+  background-color: white;
 }
 
 .tab-button {
   flex-grow: 1;
-  padding: 8px 0;
+  padding: 14px 0;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: var(--font-size-body, 1rem);
+  font-size: 15px;
   font-weight: 500;
-  color: var(--color-gray-medium);
+  color: var(--color-gray-medium, #999);
   transition: all 0.2s;
-
-  /* 비활성화된 탭의 하단 바 (높이유지) */
   border-bottom: 3px solid transparent;
 }
 
@@ -129,16 +140,16 @@ const isOpen = ref(true);
 }
 
 .tab-button.active {
-  color: var(--color-primary-dark);
+  color: var(--color-primary-dark, #333);
   font-weight: 700;
-
-  /* 활성화된 탭의 하단 바 */
   border-bottom: 3px solid var(--color-primary-dark);
 }
 
 .tab-content {
   flex-grow: 1;
   overflow-y: auto;
-  height: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 </style>

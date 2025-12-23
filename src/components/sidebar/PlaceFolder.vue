@@ -10,6 +10,10 @@
             <p class="folder-count">{{ folder.placeCount }}개의 장소</p>
         </div>
 
+        <button class="delete-folder-btn" @click.stop="$emit('delete', folder.id)">
+            <img src="@/assets/icons/ic_close.png" alt="삭제" />
+        </button>
+
     </div>
 </template>
 
@@ -22,7 +26,7 @@ const props = defineProps<{
     folder: PlaceFolderDTO;
 }>();
 
-defineEmits(['folderClick']);
+defineEmits(['folderClick', 'delete']);
 
 const iconBgStyle = computed(() => {
     return {
@@ -76,5 +80,27 @@ const iconBgStyle = computed(() => {
     font-size: var(--font-size-address, 0.8rem);
     color: var(--color-gray-medium, #6b7280);
     margin: 0;
+}
+
+.delete-folder-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: transform 0.2s;
+}
+
+.delete-folder-btn:hover {
+    transform: scale(1.2);
+}
+
+.delete-folder-btn img {
+    width: 18px;
+    height: 18px;
+    filter: brightness(0); /* 검정색으로 강제 설정 */
 }
 </style>

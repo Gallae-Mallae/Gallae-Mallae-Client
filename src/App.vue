@@ -15,6 +15,7 @@ import { onMounted } from 'vue';
 import { RouterView } from 'vue-router';
 import Header from '@/components/Header.vue';
 import { useAuthStore } from '@/stores/auth';
+
 import { fetchUser } from '@/api/auth';
 
 const authStore = useAuthStore();
@@ -33,6 +34,7 @@ onMounted(async () => {
   } finally {
     authStore.setLoading(false);
   }
+
 });
 </script>
 

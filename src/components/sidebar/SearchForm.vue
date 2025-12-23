@@ -13,6 +13,9 @@
                 <img src="@/assets/icons/ic_search.png" alt="검색 아이콘" class="icon-small" />
             </span>
             <input type="text" v-model="searchQuery" placeholder="장소를 검색하세요" />
+            <button type="button" class="reset-btn" @click="handleReset">
+                <img src="@/assets/icons/ic_close.png" alt="초기화" class="icon-small" />
+            </button>
         </div>
     </form>
 </template>
@@ -21,53 +24,74 @@
 import { ref, computed, watch } from 'vue';
 import Dropdown from '@/components/sidebar/Dropdown.vue';
 
-// 타입과 값의 import 분리 => TypeScript 오류 방지
-import { sidos, guguns } from '@/assets/datas/address';
-import type { Sido, Gugun } from '@/types/sidebar';
+// 변경된 데이터 구조 import
+import { locations } from '@/assets/datas/address';
+import type { Sido } from '@/assets/datas/address';
+import type { SearchData } from '@/types/sidebar';
 
 const selectedSidoName = ref('');
 const selectedGugunName = ref('');
 const searchQuery = ref('');
 
-// 시도 이름 목록
-const sidoNames = computed(() => ['전체', ...sidos.map(s => s.name)]);
+// 시도 이름 목록 생성
+const sidoNames = computed(() => ['전체', ...locations.map(s => s.name)]);
 
-// 현재 선택된 시도 객체를 찾습니다. (구군 필터링을 위한 내부 로직)
+// 현재 선택된 시도 객체 찾기
 const selectedSido = computed<Sido | undefined>(() =>
-    sidos.find(s => s.name === selectedSidoName.value)
+    locations.find(s => s.name === selectedSidoName.value)
 );
 
-// 구군 이름 목록 (선택된 시도에 따라 동적으로 변경)
+// 구군 이름 목록 생성 (선택된 시도 하위의 guguns 배열 사용)
 const gugunNames = computed(() => {
     const sido = selectedSido.value;
-    // 시도가 선택 전, 빈 배열 반환
     if (!sido) return ["전체"];
 
-    // 선택된 시도의 sidoId와 일치하는 구군만 필터링
-    const filteredGuguns = guguns.filter(g => g.sidoId === sido.id);
-
-    return ['전체', ...filteredGuguns.map(g => g.name)];
+    return ['전체', ...sido.guguns.map(g => g.name)];
 });
 
-// 감시자(Watcher): 시도 변경 시 구군 초기화 로직
-watch(selectedSidoName, (newSidoName) => {
-    // 시도가 새로 선택되면, 구군 선택을 '전체'로 설정
-    if (newSidoName) {
+// 시도가 변경되면 구군을 '전체'로 초기화
+watch(selectedSidoName, (newVal) => {
+    if (newVal) {
         selectedGugunName.value = '전체';
     }
 });
 
-// 폼 제출 로직
-const emit = defineEmits(['searchSubmit']);
+const emit = defineEmits(['searchSubmit', 'reset']);
+
+// 검색 내용이 있는지 확인 (리셋 버튼 노출 여부)
+const hasSearchContent = computed(() => {
+    return selectedSidoName.value || searchQuery.value;
+});
+
+// 현재 폼 데이터를 반환하는 함수 (외부 노출용)
+const getFormData = (): SearchData => {
+    const sidoObj = locations.find(s => s.name === selectedSidoName.value);
+    const gugunObj = sidoObj?.guguns.find(g => g.name === selectedGugunName.value);
+
+    return {
+        sidoName: selectedSidoName.value === '전체' ? '' : selectedSidoName.value,
+        sidoCode: sidoObj?.code ?? 0,
+        gugunName: selectedGugunName.value === '전체' ? '' : selectedGugunName.value,
+        gugunCode: gugunObj?.code ?? 0,
+        query: searchQuery.value.trim(),
+    };
+};
 
 const submitForm = () => {
-    // SearchTab으로 모든 입력 데이터를 전달
-    emit('searchSubmit', {
-        sido: selectedSidoName.value,
-        gugun: selectedGugunName.value,
-        query: searchQuery.value.trim(),
-    });
+    // API 요청을 위해 코드값도 함께 전달
+    emit('searchSubmit', getFormData());
 };
+
+const handleReset = () => {
+    selectedSidoName.value = '';
+    selectedGugunName.value = '';
+    searchQuery.value = '';
+    emit('reset');
+};
+
+defineExpose({
+    getFormData
+});
 </script>
 
 <style scoped>
@@ -86,6 +110,7 @@ const submitForm = () => {
     border: 1px solid var(--color-gray-light, #ccc);
     border-radius: 4px;
     overflow: hidden;
+    align-items: center;
 }
 
 .search-icon {
@@ -95,6 +120,7 @@ const submitForm = () => {
     font-size: 1.1rem;
     color: var(--color-gray-medium);
     transition: color 0.2s;
+    display: flex; /* 아이콘 정렬용 */
 }
 
 .search-input-wrapper input {
@@ -102,5 +128,25 @@ const submitForm = () => {
     border: none;
     outline: none;
     font-size: 1rem;
+}
+
+.reset-btn {
+    background: none;
+    border: none;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reset-btn img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+}
+
+.reset-btn:hover img {
+    opacity: 1;
 }
 </style>

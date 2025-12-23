@@ -1,0 +1,35 @@
+[Context]
+I am developing a backend for a travel service using Spring Boot and JPA. 
+The frontend expects two specific APIs for "Attraction Likes", but they are currently missing, causing 404 errors.
+
+[Required APIs]
+
+1. **Get My Liked IDs**
+   - **Method**: `GET`
+   - **URL**: `/api/attractions/likes/my`
+   - **Response**: `List<Integer>` (e.g., `[125, 452, 1024]`)
+   - **Description**: Returns a list of all `attrId` values that the currently logged-in user has liked. 
+
+2. **Toggle Like**
+   - **Method**: `POST`
+   - **URL**: `/api/attractions/{attractionId}/likes`
+   - **Response**: `200 OK` (No body)
+   - **Description**: If the user hasn't liked the attraction, create a `PlaceLike` record and increment `Attraction.likeCount`. If they have, delete the record and decrement `likeCount`.
+
+[Entity Information]
+- `Attraction`: PK is `Integer attrId`. Has `Long likeCount`.
+- `PlaceLike`: PK is `Long likeId`. Has `ManyToOne` relations with `User` and `Attraction`. Table name is `place_likes` with a unique constraint on `(user_id, attr_id)`.
+
+[Implementation Guidelines]
+- Use `PlaceLikeRepository` for database access.
+- Use `@AuthenticationPrincipal` to get the current user's ID.
+- In `AttractionService`, handle the toggle logic.
+- Ensure `likeCount` in the `Attraction` table is updated correctly.
+- For `GET /likes/my`, use a JPQL or native query to select only the `attrId`s to optimize performance.
+
+[Task]
+Please provide the complete code for:
+1. `PlaceLikeRepository.java`
+2. Necessary methods in `AttractionService.java`
+3. Necessary methods in `AttractionController.java`
+4. Any small updates to the `Attraction` entity (like increment/decrement methods).
