@@ -5,7 +5,7 @@
                 <TimelineTime />
 
                 <div class="day-columns">
-                    <TimelineDaily v-for="day in schedules" :key="day.dayNumber" :data="day" />
+                    <TimelineDaily v-for="day in schedules" :key="`${day.dayNumber}-${day.items.length}`" :data="day" />
                 </div>
             </div>
         </div>

@@ -3,8 +3,7 @@ import { ref } from "vue";
 import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
 import { timeToMinutes, minutesToTimeString } from "@/utils/time";
 import { fetchPlanById } from "@/api/plan";
-import { createScheduleItem } from "@/api/schedule";
-import { stompClient } from "@/utils/websocket";
+import { createScheduleItem, deleteScheduleItem } from "@/api/schedule";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
@@ -42,6 +41,7 @@ export const usePlanStore = defineStore("plan", () => {
         console.log("일정 이동 발생:", data);
         break;
       case "BLOCK_DELETED":
+        applyDeletedBlock(data.blockId);
         console.log("일정 삭제 발생:", data);
         break;
       case "BLOCK_RESIZED":
@@ -63,18 +63,38 @@ export const usePlanStore = defineStore("plan", () => {
       await createScheduleItem(String(planData.value.id), payload);
       console.log("일정 생성 요청 성공");
     } catch (error) {
-      console.error("일정 생성 요청 실패:", error);
+      console.error("일정 생성 요청 실패", error);
     }
   };
 
   const applyCreatedBlock = (data: any) => {
+    console.log("📍 [1] applyCreatedBlock 진입:", data.blockId);
+
+    if (!planData.value) {
+      console.error("📍 [Error] planData 없음");
+      return;
+    }
+
     const targetDay = planData.value?.dailySchedules.find(
       (d) => d.dayNumber === data.day
     );
-    if (!targetDay) return;
+    if (!targetDay) {
+      console.error("📍 [Error] 날짜 못 찾음:", data.day);
+      return;
+    }
 
     if (targetDay.items.some((i) => String(i.blockId) === String(data.blockId)))
       return;
+
+    const isDuplicate = targetDay.items.some(
+      (i) => String(i.blockId) === String(data.blockId)
+    );
+    if (isDuplicate) {
+      console.warn("📍 [Skip] 중복 데이터:", data.blockId);
+      return;
+    }
+
+    console.log("📍 [2] 데이터 조립 및 할당 시작");
 
     const newItem: ScheduleItemDTO = {
       blockId: data.blockId,
@@ -88,10 +108,15 @@ export const usePlanStore = defineStore("plan", () => {
       categoryCode: data.attraction?.categoryCode,
     };
 
-    targetDay.items.push(newItem);
-    targetDay.items.sort(
+    const nextItems = [...targetDay.items, newItem];
+
+    nextItems.sort(
       (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
     );
+
+    targetDay.items = nextItems;
+
+    console.log("📍 [3] 반영 완료:", data.blockId);
   };
 
   // 2. 일정 리사이징
@@ -186,13 +211,21 @@ export const usePlanStore = defineStore("plan", () => {
   };
 
   // 4. 일정 삭제
-  const removeScheduleItem = (dayNumber: number, blockId: number) => {
-    const targetDay = planData.value?.dailySchedules.find(
-      (d) => d.dayNumber === dayNumber
-    );
-    if (targetDay) {
-      targetDay.items = targetDay.items.filter((i) => i.blockId !== blockId);
+  const requestRemoveScheduleBlock = async (blockId: number) => {
+    try {
+      await deleteScheduleItem(String(blockId));
+      console.log(`삭제 요청 성공`);
+    } catch (error) {
+      console.error("삭제 요청 실패", error);
     }
+  };
+
+  const applyDeletedBlock = (blockId: number) => {
+    if (!planData.value) return;
+
+    planData.value.dailySchedules.forEach((day) => {
+      day.items = day.items.filter((item) => item.blockId !== blockId);
+    });
   };
 
   // 메모 관련 로직
@@ -269,13 +302,16 @@ export const usePlanStore = defineStore("plan", () => {
     isLoading,
     loadPlan,
     setPlanData,
+    handleSocketEvent,
 
     requestAddScheduleBlock,
-    handleSocketEvent,
+    applyCreatedBlock,
+
+    requestRemoveScheduleBlock,
+    applyDeletedBlock,
 
     updateItemDuration,
     moveScheduleItem,
-    removeScheduleItem,
     toggleMemo,
     closeMemo,
     addMemoToScheduleItem,

@@ -13,7 +13,7 @@
       </div>
 
       <div class="items-container">
-        <ScheduleBlock v-for="item in data.items" :key="item.blockId" :item="item" :unit-height="80"
+        <ScheduleBlock v-for="item in scheduleItems" :key="item.blockId" :item="item" :unit-height="80"
           @remove="handleRemoveItem" />
       </div>
     </div>
@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-
+import { watch, computed } from 'vue';
 import { usePlanStore } from '@/stores/plan';
 import type { DailyScheduleDTO, ScheduleItemDTO, PlaceItemDTO } from '@/types/plan';
 import ScheduleBlock from '@/components/plan/ScheduleBlock.vue';
@@ -34,6 +34,14 @@ const formatDate = (dateStr: string) => {
   if (!dateStr) return "";
   return dateStr.split('-').slice(1).join('/');
 };
+
+const scheduleItems = computed(() => {
+  // 스토어의 planData가 바뀔 때마다 자동으로 재실행
+  const currentDay = planStore.planData?.dailySchedules.find(
+    (d) => d.dayNumber === props.data.dayNumber
+  );
+  return currentDay ? currentDay.items : [];
+});
 
 const UNIT_HEIGHT = 80;
 const START_TIME_OFFSET = 9 * 60;
@@ -80,7 +88,7 @@ const handleDrop = (event: DragEvent) => {
   // 2. 신규 장소 추가 (PLACE)
   if (rawPlace) {
     const placeData: PlaceItemDTO = JSON.parse(rawPlace);
-    console.log("📍 드롭된 장소 데이터 전체:", placeData);
+    console.log("드롭된 장소 데이터 전체:", placeData);
 
     // 스토어의 새 함수 호출 (인자 형식 맞춤)
     planStore.requestAddScheduleBlock({
@@ -107,8 +115,12 @@ const handleDrop = (event: DragEvent) => {
 };
 
 const handleRemoveItem = (blockId: number) => {
-  planStore.removeScheduleItem(props.data.dayNumber, blockId);
+  planStore.requestRemoveScheduleBlock(blockId);
 };
+
+watch(() => planStore.planData?.dailySchedules, (newVal) => {
+  console.log("👀 스토어 데이터 변경 감지됨!", newVal);
+}, { deep: true });
 
 </script>
 

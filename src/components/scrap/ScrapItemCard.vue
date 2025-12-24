@@ -1,8 +1,8 @@
 <template>
     <div class="item-card" @click="handleCardClick">
-        <img :src="item.imageUrl" :alt="item.title" class="item-image"/>
+        <img :src="item.imageUrl" :alt="item.title" class="item-image" referrerpolicy="no-referrer" />
 
-        <div class="item-overlay">
+        <div class=" item-overlay">
             <div class="item-info">
                 <h3 class="item-title">{{ item.title }}</h3>
                 <p class="item-desc">{{ item.description }}</p>

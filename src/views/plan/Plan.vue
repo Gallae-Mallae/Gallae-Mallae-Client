@@ -30,15 +30,23 @@ import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 const route = useRoute();
 const planStore = usePlanStore();
 
+let planSubscription: any = null;
+
 const connectWebSocket = (planId: string) => {
     if (!planId) return;
 
-    // 1. 연결 성공 시 실행될 로직
+    if (planSubscription) {
+        planSubscription.unsubscribe();
+        planSubscription = null;
+        console.log("기존 구독 해제");
+    }
+
+    // 연결 성공 시 실행되는 로직
     stompClient.onConnect = () => {
         console.log(`실시간 통신 연결 성공`);
 
         // [구독 1] 일정 블록 생성 채널
-        stompClient.subscribe(`/topic/plans/${planId}`, (message) => {
+        planSubscription = stompClient.subscribe(`/topic/plans/${planId}`, (message) => {
             console.log('일정 생성 이벤트 수신');
             const payload = JSON.parse(message.body);
             planStore.handleSocketEvent(payload);
@@ -47,15 +55,21 @@ const connectWebSocket = (planId: string) => {
         // 추후 이동(MOVE), 삭제(DELETE) 채널도 여기에 subscribe를 추가하면 됩니다.
     };
 
-    // STOMP 에러 핸들링
-    stompClient.onStompError = (frame) => {
-        console.error('STOMP Protocol Error:', frame.headers['message']);
-    };
-
-    // 웹소켓 활성화
     if (!stompClient.active) {
         stompClient.activate();
+    } else if (stompClient.connected) {
+        stompClient.onConnect(null as any);
     }
+
+    // STOMP 에러 핸들링
+    // stompClient.onStompError = (frame) => {
+    //     console.error('STOMP Protocol Error:', frame.headers['message']);
+    // };
+
+    // 웹소켓 활성화
+    // if (!stompClient.active) {
+    //     stompClient.activate();
+    // }
 };
 
 onMounted(() => {
@@ -74,8 +88,8 @@ watch(() => route.params.id, (newId) => {
 });
 
 onUnmounted(() => {
-    if (stompClient.active) {
-        stompClient.deactivate();
+    if (planSubscription) {
+        planSubscription.unsubscribe();
         console.log('웹소켓 연결 해제');
     }
 });
