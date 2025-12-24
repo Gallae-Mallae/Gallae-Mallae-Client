@@ -10,6 +10,14 @@ import {
   resizeScheduleItem,
 } from "@/api/schedule";
 
+import { createMemo, deleteMemo, fetchMemos } from "@/api/memo";
+import type {
+  MemoRequest,
+  CreateMemoResponse,
+  MemoCreatedSocketData,
+  MemoDeletedSocketData,
+} from "@/api/memo";
+
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
   const activeMemoId = ref<number | null>(null);
@@ -44,32 +52,12 @@ export const usePlanStore = defineStore("plan", () => {
         break;
 
       case "BLOCK_MOVED":
-        if (data.fromDay) await refreshDayData(data.fromDay);
-        if (data.toDay) await refreshDayData(data.toDay);
-
-        if (planData.value) {
-          planData.value.dailySchedules.forEach(async (day) => {
-            await refreshDayData(day.dayNumber);
-          });
-        }
+        await refreshDayData(data.day);
         console.log("일정 이동 발생:", data);
         break;
 
       case "BLOCK_DELETED":
-        const targetDay =
-          data.day ||
-          planData.value.dailySchedules.find((d) =>
-            d.items.some(
-              (item) => Number(item.blockId) === Number(data.blockId)
-            )
-          )?.dayNumber;
-
-        if (targetDay) {
-          await refreshDayData(targetDay);
-        } else {
-          await loadPlan(Number(planData.value.id));
-        }
-
+        await refreshDayData(data.day);
         console.log("일정 삭제 발생:", data);
         break;
 
@@ -77,6 +65,27 @@ export const usePlanStore = defineStore("plan", () => {
         await refreshDayData(data.day);
         console.log("일정 리사이징 발생:", data);
         break;
+
+      case "MEMO_CREATED": {
+        const targetDay = planData.value.dailySchedules.find((d) =>
+          d.items.some((item) => Number(item.blockId) === Number(data.blockId))
+        );
+        if (targetDay) {
+          await refreshDayData(targetDay.dayNumber);
+        }
+        console.log("메모 생성 발생:", data);
+        break;
+      }
+
+      case "MEMO_DELETED": {
+        const targetDay = planData.value.dailySchedules.find((d) =>
+          d.items.some((item) => Number(item.blockId) === Number(data.blockId))
+        );
+        if (targetDay) {
+          await refreshDayData(targetDay.dayNumber);
+        }
+        break;
+      }
     }
   };
 
@@ -122,7 +131,9 @@ export const usePlanStore = defineStore("plan", () => {
                 id: String(m.memoId),
                 type: m.type,
                 content: m.content,
-                displayText: m.content,
+                linkUrl: m.linkUrl,
+                displayText:
+                  m.type === "LINK" ? m.linkUrl || m.content : m.content,
               })),
             };
           })
@@ -151,6 +162,39 @@ export const usePlanStore = defineStore("plan", () => {
       console.log("일정 생성 요청 성공");
     } catch (error) {
       console.error("일정 생성 요청 실패", error);
+    }
+  };
+
+  const addScheduleBlockLocal = (payload: {
+    day: number;
+    startTime: string;
+    title: string;
+    isTemp?: boolean;
+    categoryCode?: number;
+  }) => {
+    if (!planData.value) return;
+
+    const targetDay = planData.value.dailySchedules.find(
+      (d) => d.dayNumber === payload.day
+    );
+
+    if (targetDay) {
+      const tempItem: any = {
+        blockId: Date.now(),
+        title: payload.title,
+        startTime: payload.startTime.substring(0, 5),
+        endTime: minutesToTimeString(timeToMinutes(payload.startTime) + 60),
+        durationTime: 60,
+        categoryCode: payload.categoryCode || 0,
+        attraction: null,
+        memos: [],
+        isTemp: true,
+      };
+
+      targetDay.items.push(tempItem);
+      targetDay.items.sort(
+        (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+      );
     }
   };
 
@@ -225,6 +269,47 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
+  const updateItemPositionLocal = (
+    blockId: number,
+    fromDay: number,
+    toDay: number,
+    newStartTime: string
+  ) => {
+    if (!planData.value) return;
+
+    const sourceDay = planData.value.dailySchedules.find(
+      (d) => d.dayNumber === fromDay
+    );
+    if (!sourceDay) return;
+
+    const itemIndex = sourceDay.items.findIndex((i) => i.blockId === blockId);
+
+    if (itemIndex !== -1) {
+      const removedItems = sourceDay.items.splice(itemIndex, 1);
+      const item = removedItems[0];
+
+      if (item) {
+        const originalDuration = item.durationTime || 60;
+
+        item.startTime = newStartTime.substring(0, 5);
+
+        const newStartMin = timeToMinutes(item.startTime);
+        item.endTime = minutesToTimeString(newStartMin + originalDuration);
+        item.durationTime = originalDuration;
+
+        const targetDay = planData.value.dailySchedules.find(
+          (d) => d.dayNumber === toDay
+        );
+        if (targetDay) {
+          targetDay.items.push(item);
+          targetDay.items.sort(
+            (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+          );
+        }
+      }
+    }
+  };
+
   // 4. 일정 삭제
   const requestRemoveScheduleBlock = async (blockId: number) => {
     try {
@@ -235,7 +320,14 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
-  // 메모 관련 로직
+  const removeItemLocal = (blockId: number) => {
+    if (!planData.value) return;
+
+    planData.value.dailySchedules.forEach((day) => {
+      day.items = day.items.filter((item) => item.blockId !== blockId);
+    });
+  };
+
   const toggleMemo = (blockId: number | null) => {
     activeMemoId.value = activeMemoId.value === blockId ? null : blockId;
   };
@@ -244,62 +336,118 @@ export const usePlanStore = defineStore("plan", () => {
     activeMemoId.value = null;
   };
 
-  const addMemoToScheduleItem = (
+  // 1. 메모 추가
+  const requestAddMemo = async (
+    blockId: number,
+    dayNumber: number,
+    payload: { type: "TEXT" | "LINK"; content: string }
+  ) => {
+    if (!planData.value) return;
+
+    addMemoLocal(dayNumber, blockId, payload);
+
+    try {
+      const requestBody: MemoRequest = {
+        type: payload.type,
+        content: payload.type === "TEXT" ? payload.content : null,
+        linkUrl: payload.type === "LINK" ? payload.content : null,
+      };
+
+      await createMemo(String(blockId), requestBody);
+    } catch (error) {
+      console.error(error);
+      await refreshDayData(dayNumber);
+    }
+  };
+
+  const addMemoLocal = (
     dayNumber: number,
     blockId: number,
     memoData: { type: "TEXT" | "LINK"; content: string }
   ) => {
-    const targetDay = planData.value?.dailySchedules.find(
+    if (!planData.value) return;
+
+    const targetDay = planData.value.dailySchedules.find(
       (d) => d.dayNumber === dayNumber
     );
     const item = targetDay?.items.find((i) => i.blockId === blockId);
 
     if (item) {
       const newMemo: MemoDTO = {
-        id: `memo_${Date.now()}`,
+        id: `temp_${Date.now()}`,
         type: memoData.type,
-        content: memoData.content,
+        content: memoData.type === "TEXT" ? memoData.content : "",
+        linkUrl: memoData.type === "LINK" ? memoData.content : null,
         displayText: memoData.content,
       };
+
+      if (!item.memos) item.memos = [];
       item.memos.push(newMemo);
     }
   };
 
-  const removeMemoFromScheduleItem = (
+  // 2. 메모 삭제
+  const requestDeleteMemo = async (
+    memoId: string,
+    blockId: number,
+    dayNumber: number
+  ) => {
+    if (!planData.value) return;
+
+    removeMemoLocal(dayNumber, blockId, memoId);
+
+    try {
+      await deleteMemo(memoId);
+      console.log(`메모 삭제 성공: ${memoId}`);
+    } catch (error) {
+      console.error("메모 삭제 실패", error);
+      await refreshDayData(dayNumber);
+    }
+  };
+
+  const removeMemoLocal = (
     dayNumber: number,
     blockId: number,
-    memoIndex: number
+    memoId: string
   ) => {
     if (!planData.value) return;
 
     const targetDay = planData.value.dailySchedules.find(
       (d) => d.dayNumber === dayNumber
     );
-
     const item = targetDay?.items.find((i) => i.blockId === blockId);
 
-    if (item && item.memos[memoIndex]) {
-      item.memos.splice(memoIndex, 1);
+    if (item && item.memos) {
+      item.memos = item.memos.filter((m) => m.id !== memoId);
     }
   };
 
-  const updateMemoOrder = (
-    day: number,
-    blockId: number,
-    newList: MemoDTO[]
-  ) => {
+  // 3. 메모 조회
+  const fetchAndSyncMemos = async (blockId: number, dayNumber: number) => {
     if (!planData.value) return;
 
-    const targetDay = planData.value.dailySchedules.find(
-      (d) => d.dayNumber === day
-    );
+    try {
+      const response = await fetchMemos(String(blockId));
 
-    if (targetDay) {
-      const scheduleItem = targetDay.items.find((i) => i.blockId === blockId);
+      const targetDay = planData.value.dailySchedules.find(
+        (d) => d.dayNumber === dayNumber
+      );
+      const item = targetDay?.items.find((i) => i.blockId === blockId);
 
-      if (scheduleItem) {
-        scheduleItem.memos = [...newList];
+      if (item && response.data) {
+        item.memos = response.data
+          .map((m: any) => ({
+            id: String(m.memoId),
+            type: m.type,
+            content: m.content,
+            linkUrl: m.linkUrl,
+            orderIndex: m.orderIndex,
+            displayText: m.type === "LINK" ? m.linkUrl || m.content : m.content,
+          }))
+          .sort((a: any, b: any) => a.orderIndex - b.orderIndex);
       }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -313,15 +461,18 @@ export const usePlanStore = defineStore("plan", () => {
     refreshDayData,
 
     requestAddScheduleBlock,
+    addScheduleBlockLocal,
     requestRemoveScheduleBlock,
+    removeItemLocal,
     requestMoveScheduleItem,
+    updateItemPositionLocal,
     requestResizeScheduleItem,
     updateItemDuration,
 
     toggleMemo,
     closeMemo,
-    addMemoToScheduleItem,
-    removeMemoFromScheduleItem,
-    updateMemoOrder,
+    requestAddMemo,
+    requestDeleteMemo,
+    fetchAndSyncMemos,
   };
 });

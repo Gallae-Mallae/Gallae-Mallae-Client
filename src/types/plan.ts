@@ -26,6 +26,7 @@ export interface MemoDTO {
   type: MemoContentType;
   content: string;
   displayText: string;
+  linkUrl?: string | null;
 }
 
 export interface PlaceItemDTO {
