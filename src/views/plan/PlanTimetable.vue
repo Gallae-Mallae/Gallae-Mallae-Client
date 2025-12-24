@@ -6,9 +6,21 @@
 
     <template v-else-if="planData">
       <TimelineHeader :plan-data="planData" :participants="planData.participants" />
+
       <main class="plan-content">
-        <TimelineTable :schedules="planData.dailySchedules" />
+        <div class="timeline-table-container">
+          <div class="timeline-scroll-area">
+            <div class="timeline-grid">
+              <TimelineTime />
+
+              <div class="day-columns">
+                <TimelineDaily v-for="day in planData.dailySchedules" :key="day.dayNumber" :data="day" />
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
+
     </template>
 
   </div>
@@ -19,7 +31,8 @@
 import { onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import TimelineHeader from '@/components/plan/TimelineHeader.vue';
-import TimelineTable from '@/components/plan/TimelineTable.vue';
+import TimelineTime from '@/components/plan/TimelineTime.vue';
+import TimelineDaily from '@/components/plan/TimelineDaily.vue';
 import { usePlanStore } from '@/stores/plan';
 
 const route = useRoute();
@@ -53,5 +66,35 @@ onMounted(() => {
   padding: 28px;
   overflow-y: auto;
   background-color: #f8f9fa;
+}
+
+.timeline-table-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  user-select: none;
+}
+
+.timeline-grid {
+  display: flex;
+}
+
+.day-columns {
+  display: flex;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.day-columns>* {
+  flex: 1;
+  min-width: 150px;
+}
+
+.loading-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 </style>

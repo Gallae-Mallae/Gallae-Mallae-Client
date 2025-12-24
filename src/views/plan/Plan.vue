@@ -30,36 +30,40 @@ import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 const route = useRoute();
 const planStore = usePlanStore();
 
+let planSubscription: any = null;
+
 const connectWebSocket = (planId: string) => {
     if (!planId) return;
 
-    // 1. 연결 성공 시 실행될 로직
+    if (planSubscription) {
+        planSubscription.unsubscribe();
+        planSubscription = null;
+        console.log("기존 구독 해제");
+    }
+
+    // 연결 성공 시 실행되는 로직
     stompClient.onConnect = () => {
         console.log(`실시간 통신 연결 성공`);
 
-        // [구독 1] 일정 블록 생성 채널
-        stompClient.subscribe(`/topic/plans/${planId}`, (message) => {
-            console.log('일정 생성 이벤트 수신');
+        // 통합 채널 구독
+        planSubscription = stompClient.subscribe(`/topic/plans/${planId}`, (message) => {
             const payload = JSON.parse(message.body);
+            console.log('실시간 이벤트 수신:', payload.event, payload.data);
+
             planStore.handleSocketEvent(payload);
         });
+    }
 
-        // 추후 이동(MOVE), 삭제(DELETE) 채널도 여기에 subscribe를 추가하면 됩니다.
-    };
-
-    // STOMP 에러 핸들링
-    stompClient.onStompError = (frame) => {
-        console.error('STOMP Protocol Error:', frame.headers['message']);
-    };
-
-    // 웹소켓 활성화
     if (!stompClient.active) {
         stompClient.activate();
+    } else if (stompClient.connected) {
+        // 이미 연결된 상태에서 planId만 바뀐 경우 (재구독)
+        stompClient.onConnect(null as any);
     }
 };
 
+// URL의 planId를 사용하여 연결
 onMounted(() => {
-    // URL의 planId를 사용하여 연결
     const planId = route.params.id as string;
     connectWebSocket(planId);
 });
@@ -74,10 +78,10 @@ watch(() => route.params.id, (newId) => {
 });
 
 onUnmounted(() => {
-    if (stompClient.active) {
-        stompClient.deactivate();
-        console.log('웹소켓 연결 해제');
+    if (planSubscription) {
+        planSubscription.unsubscribe();
     }
+    stompClient.deactivate();
 });
 
 </script>

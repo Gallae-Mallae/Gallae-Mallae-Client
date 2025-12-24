@@ -38,24 +38,47 @@ export const createPlan = async (
 };
 
 /* 참여자 목록 조회 */
-export interface PlanMemberDTO {
+export interface PlanMemberResponse {
   memberId: number;
   userId: number;
-  nickname: string;
+  name: string;
   profileImageUrl: string;
 }
 
 export const fetchPlanMembers = async (
   planId: number
-): Promise<PlanMemberDTO[]> => {
-  const response = await http.get<PlanMemberDTO[]>(`/plans/${planId}/members`);
+): Promise<PlanMemberResponse[]> => {
+  const response = await http.get<PlanMemberResponse[]>(
+    `/plans/${planId}/members`
+  );
   return response.data || [];
 };
 
-/* 특정 일정 조회 */
+/* 특정 일정 조회 (일별) */
+export interface ScheduleBlockResponse {
+  blockId: number;
+  planId: number;
+  day: number;
+  title: string;
+  startTime: string;
+  endTime: string;
+  attraction: {
+    attractionId: number;
+    title: string;
+    address: string;
+    imageUrl: string;
+  } | null;
+  memos: {
+    memoId: number;
+    content: string;
+    type: "TEXT" | "LINK";
+    orderIndex: number;
+  }[];
+}
+
 export const fetchPlanById = async (planId: number): Promise<PlanDTO> => {
   const [itemsRes, allPlans, membersRes] = await Promise.all([
-    http.get<any>(`/schedules/${planId}`),
+    http.get<ScheduleBlockResponse[]>(`/schedules/${planId}`),
     fetchPlans(),
     fetchPlanMembers(planId),
   ]);
@@ -64,7 +87,17 @@ export const fetchPlanById = async (planId: number): Promise<PlanDTO> => {
   const basicInfo = allPlans.find((p) => String(p.id) === String(planId));
 
   return mapToPlanDTO(planId, items, {
-    ...basicInfo,
+    ...(basicInfo || {}),
     participants: membersRes,
   });
+};
+
+export const fetchDailySchedules = async (
+  planId: number,
+  day: number
+): Promise<ScheduleBlockResponse[]> => {
+  const response = await http.get<ScheduleBlockResponse[]>(
+    `/schedules/${planId}/days/${day}`
+  );
+  return response.data || [];
 };

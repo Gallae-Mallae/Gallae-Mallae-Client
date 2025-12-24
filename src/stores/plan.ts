@@ -2,9 +2,13 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
 import { timeToMinutes, minutesToTimeString } from "@/utils/time";
-import { fetchPlanById } from "@/api/plan";
-import { createScheduleItem } from "@/api/schedule";
-import { stompClient } from "@/utils/websocket";
+import { fetchPlanById, fetchDailySchedules } from "@/api/plan";
+import {
+  createScheduleItem,
+  deleteScheduleItem,
+  moveScheduleItem,
+  resizeScheduleItem,
+} from "@/api/schedule";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
@@ -29,72 +33,152 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
-  const handleSocketEvent = (payload: { event: string; data: any }) => {
+  const handleSocketEvent = async (payload: { event: string; data: any }) => {
     if (!planData.value) return;
     const { event, data } = payload;
 
     switch (event) {
       case "BLOCK_CREATED":
-        applyCreatedBlock(data);
+        await refreshDayData(data.day);
         console.log("일정 생성 발생:", data);
         break;
+
       case "BLOCK_MOVED":
+        if (data.fromDay) await refreshDayData(data.fromDay);
+        if (data.toDay) await refreshDayData(data.toDay);
+
+        if (planData.value) {
+          planData.value.dailySchedules.forEach(async (day) => {
+            await refreshDayData(day.dayNumber);
+          });
+        }
         console.log("일정 이동 발생:", data);
         break;
+
       case "BLOCK_DELETED":
+        const targetDay =
+          data.day ||
+          planData.value.dailySchedules.find((d) =>
+            d.items.some(
+              (item) => Number(item.blockId) === Number(data.blockId)
+            )
+          )?.dayNumber;
+
+        if (targetDay) {
+          await refreshDayData(targetDay);
+        } else {
+          await loadPlan(Number(planData.value.id));
+        }
+
         console.log("일정 삭제 발생:", data);
         break;
+
       case "BLOCK_RESIZED":
+        await refreshDayData(data.day);
         console.log("일정 리사이징 발생:", data);
         break;
     }
   };
 
-  // 1. 드래그 앤 드롭으로 일정 추가
+  const refreshDayData = async (dayNumber: number) => {
+    if (!planData.value) return;
+
+    try {
+      const updatedBlocks = await fetchDailySchedules(
+        Number(planData.value.id),
+        dayNumber
+      );
+      const targetDay = planData.value.dailySchedules.find(
+        (d) => d.dayNumber === dayNumber
+      );
+
+      if (targetDay) {
+        targetDay.items = (updatedBlocks as any[])
+          .map((block) => {
+            const minedType =
+              (block.attraction as any)?.contentTypeId || block.categoryCode;
+
+            return {
+              ...block,
+              categoryCode: minedType ? Number(minedType) : 0,
+
+              startTime: block.startTime.substring(0, 5),
+              endTime: block.endTime.substring(0, 5),
+              durationTime:
+                timeToMinutes(block.endTime) - timeToMinutes(block.startTime),
+
+              attraction: block.attraction
+                ? {
+                    id: String(block.attraction.attractionId),
+                    title: block.attraction.title,
+                    address: block.attraction.address,
+                    contentTypeId: minedType ? Number(minedType) : 0,
+                    latitude: 0,
+                    longitude: 0,
+                  }
+                : null,
+
+              memos: block.memos.map((m: any) => ({
+                id: String(m.memoId),
+                type: m.type,
+                content: m.content,
+                displayText: m.content,
+              })),
+            };
+          })
+          .sort(
+            (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+          );
+      }
+    } catch (error) {
+      console.error(`${dayNumber}일차 갱신 실패:`, error);
+    }
+  };
+
+  // 1. 일정 추가
   const requestAddScheduleBlock = async (payload: {
     attractionId: number | null;
     day: number;
     startTime: string;
     title: string;
+    categoryCode?: number;
   }) => {
     if (!planData.value) return;
 
     try {
-      await createScheduleItem(String(planData.value.id), payload);
+      const { categoryCode, ...apiPayload } = payload;
+      await createScheduleItem(String(planData.value.id), apiPayload);
       console.log("일정 생성 요청 성공");
     } catch (error) {
-      console.error("일정 생성 요청 실패:", error);
+      console.error("일정 생성 요청 실패", error);
     }
   };
 
-  const applyCreatedBlock = (data: any) => {
-    const targetDay = planData.value?.dailySchedules.find(
-      (d) => d.dayNumber === data.day
-    );
-    if (!targetDay) return;
+  // 2. 일정 리사이징
+  const requestResizeScheduleItem = async (
+    blockId: number,
+    newEndTime: string,
+    dayNumber: number
+  ) => {
+    if (!planData.value) return;
 
-    if (targetDay.items.some((i) => String(i.blockId) === String(data.blockId)))
-      return;
+    try {
+      const formattedEndTime =
+        newEndTime.length === 5 ? `${newEndTime}:00` : newEndTime;
 
-    const newItem: ScheduleItemDTO = {
-      blockId: data.blockId,
-      day: data.day,
-      title: data.title,
-      startTime: data.startTime.substring(0, 5),
-      endTime: data.endTime.substring(0, 5),
-      durationTime: timeToMinutes(data.endTime) - timeToMinutes(data.startTime),
-      memos: data.memos || [],
-      attraction: data.attraction || null,
-      categoryCode: data.attraction?.categoryCode,
-    };
+      const requestBody = {
+        newEndTime: formattedEndTime,
+      };
 
-    targetDay.items.push(newItem);
-    targetDay.items.sort(
-      (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
-    );
+      await resizeScheduleItem(String(blockId), requestBody);
+
+      console.log("리사이징 요청 성공");
+    } catch (error) {
+      console.error("리사이징 요청 실패", error);
+      await refreshDayData(dayNumber);
+    }
   };
 
-  // 2. 일정 리사이징
   const updateItemDuration = (
     dayNumber: number,
     blockId: number,
@@ -106,37 +190,15 @@ export const usePlanStore = defineStore("plan", () => {
       (d) => d.dayNumber === dayNumber
     );
     const item = targetDay?.items.find((i) => i.blockId === blockId);
-    if (!item) return;
 
-    const startMin = timeToMinutes(item.startTime);
-    let finalEndMin = startMin + newDuration;
-
-    // 다음 일정과 겹치지 않게 조정
-    const nextItem = targetDay!.items
-      .filter(
-        (i) => i.blockId !== blockId && timeToMinutes(i.startTime) >= startMin
-      )
-      .sort(
-        (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
-      )[0];
-
-    if (nextItem) {
-      const nextStartMin = timeToMinutes(nextItem.startTime);
-      if (finalEndMin > nextStartMin) {
-        finalEndMin = nextStartMin;
-      }
-    }
-
-    item.endTime = minutesToTimeString(finalEndMin);
-
-    // durationTime 필드가 DTO에 있다면 업데이트
-    if (item.durationTime !== undefined) {
-      item.durationTime = finalEndMin - startMin;
+    if (item) {
+      const startMin = timeToMinutes(item.startTime);
+      item.endTime = minutesToTimeString(startMin + newDuration);
     }
   };
 
   // 3. 일정 이동
-  const moveScheduleItem = (payload: {
+  const requestMoveScheduleItem = async (payload: {
     blockId: number;
     fromDay: number;
     toDay: number;
@@ -144,54 +206,32 @@ export const usePlanStore = defineStore("plan", () => {
   }) => {
     if (!planData.value) return;
 
-    //이동 전 데이터
-    const fromDayData = planData.value.dailySchedules.find(
-      (d) => d.dayNumber === payload.fromDay
-    );
-    const item = fromDayData?.items.find((i) => i.blockId === payload.blockId);
-    if (!item || !fromDayData) return;
+    try {
+      const startTimeWithSeconds =
+        payload.newStartTime.length === 5
+          ? `${payload.newStartTime}:00`
+          : payload.newStartTime;
 
-    // 이동 후 데이터
-    const toDayData = planData.value.dailySchedules.find(
-      (d) => d.dayNumber === payload.toDay
-    );
-    if (!toDayData) return;
+      const requestBody = {
+        newDay: payload.toDay,
+        newStartTime: startTimeWithSeconds,
+      };
 
-    const currentDuration =
-      timeToMinutes(item.endTime) - timeToMinutes(item.startTime);
-    const newStartMin = timeToMinutes(payload.newStartTime);
-    const newEndMin = newStartMin + currentDuration;
-    const newEndTimeStr = minutesToTimeString(newEndMin);
-
-    const isOverlapping = toDayData.items.some((existingItem) => {
-      if (existingItem.blockId === payload.blockId) return false;
-      const exStart = timeToMinutes(existingItem.startTime);
-      const exEnd = timeToMinutes(existingItem.endTime);
-      return newStartMin < exEnd && exStart < newEndMin;
-    });
-
-    if (isOverlapping) {
-      return;
+      await moveScheduleItem(String(payload.blockId), requestBody);
+      console.log("이동 요청 성공");
+    } catch (error) {
+      console.error("이동 요청 실패", error);
+      await loadPlan(Number(planData.value.id));
     }
-
-    fromDayData.items = fromDayData.items.filter(
-      (i) => i.blockId !== payload.blockId
-    );
-
-    item.day = payload.toDay;
-    item.startTime = payload.newStartTime;
-    item.endTime = newEndTimeStr;
-
-    toDayData.items.push(item);
   };
 
   // 4. 일정 삭제
-  const removeScheduleItem = (dayNumber: number, blockId: number) => {
-    const targetDay = planData.value?.dailySchedules.find(
-      (d) => d.dayNumber === dayNumber
-    );
-    if (targetDay) {
-      targetDay.items = targetDay.items.filter((i) => i.blockId !== blockId);
+  const requestRemoveScheduleBlock = async (blockId: number) => {
+    try {
+      await deleteScheduleItem(String(blockId));
+      console.log(`삭제 요청 성공`);
+    } catch (error) {
+      console.error("삭제 요청 실패", error);
     }
   };
 
@@ -269,13 +309,15 @@ export const usePlanStore = defineStore("plan", () => {
     isLoading,
     loadPlan,
     setPlanData,
+    handleSocketEvent,
+    refreshDayData,
 
     requestAddScheduleBlock,
-    handleSocketEvent,
-
+    requestRemoveScheduleBlock,
+    requestMoveScheduleItem,
+    requestResizeScheduleItem,
     updateItemDuration,
-    moveScheduleItem,
-    removeScheduleItem,
+
     toggleMemo,
     closeMemo,
     addMemoToScheduleItem,
