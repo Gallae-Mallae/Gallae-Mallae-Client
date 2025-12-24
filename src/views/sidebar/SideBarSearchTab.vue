@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router'; // useRoute 추가
 import SearchForm from '@/components/sidebar/SearchForm.vue';
 import PlaceCardList from '@/components/sidebar/PlaceCardList.vue';
@@ -60,11 +60,10 @@ import AttractionDetailModal from '@/components/sidebar/AttractionDetailModal.vu
 import FolderSelectModal from '@/components/sidebar/FolderSelectModal.vue';
 import FolderCreateModal from '@/components/sidebar/FolderCreateModal.vue';
 import type { PlaceCardDTO, SearchData } from '@/types/sidebar';
-import { getSidebarAttractions, getAttractionDetail, toggleLike, type SidebarAttractionParams, type AttractionDetailResponse } from '@/api/attraction';
-import { getCategoryDisplayName } from '@/utils/categoryMap';
+import { getSidebarAttractions, getPopularAttractions, getAttractionDetail, toggleLike, type SidebarAttractionParams, type AttractionDetailResponse, type SidebarListResponse } from '@/api/attraction';
+import { getCategoryDisplayName, getCategoryDefaultImage } from '@/utils/categoryMap';
 import { useLikeStore } from '@/stores/like';
 import { useAuthStore } from '@/stores/auth';
-import image from '@/assets/images/example_place.png';
 
 const likeStore = useLikeStore();
 const authStore = useAuthStore();
@@ -92,6 +91,7 @@ const emit = defineEmits<{
 const loading = ref(false); 
 const isLoadMore = ref(false); 
 const hasSearched = ref(false);
+const isPopularMode = ref(false); // 인기 여행지 모드 여부
 const searchResults = ref<PlaceCardDTO[]>([]); 
 const searchFormRef = ref<InstanceType<typeof SearchForm> | null>(null);
 
@@ -112,6 +112,54 @@ const hasNext = ref(false);
 const currentBounds = ref<any>(null);
 const currentFilters = ref<any>({});
 const scrollContainer = ref<HTMLElement | null>(null);
+
+const processResponse = (response: SidebarListResponse, loadMore: boolean) => {
+    const newItems = response.attractions.map(item => ({
+        id: String(item.attractionId),
+        imageUrl: item.imageUrl || getCategoryDefaultImage(item.contentTypeId),
+        title: item.title || "이름 없음",
+        address: item.address || "주소 없음",
+        latitude: item.latitude,
+        longitude: item.longitude,
+        categoryCode: item.contentTypeId,
+        categoryName: getCategoryDisplayName(item.contentTypeId),
+        likes: item.likeCount || 0,
+        isLiked: likeStore.isLiked(item.attractionId),
+        isMarked: false,
+    }));
+
+    if (loadMore) {
+        searchResults.value = [...searchResults.value, ...newItems];
+    } else {
+        searchResults.value = newItems;
+    }
+
+    hasNext.value = response.hasNext;
+    page.value = response.nowPage;
+};
+
+const fetchPopularData = async (loadMore: boolean = false) => {
+    if (loadMore) {
+        if (isLoadMore.value || loading.value) return;
+        isLoadMore.value = true;
+    } else {
+        if (loading.value) return;
+        loading.value = true;
+    }
+
+    try {
+        const response = await getPopularAttractions({
+            page: page.value,
+            size: 20
+        });
+        processResponse(response, loadMore);
+    } catch (error) {
+        console.error("Failed to fetch popular attractions:", error);
+    } finally {
+        loading.value = false;
+        isLoadMore.value = false;
+    }
+};
 
 const fetchSidebarData = async (loadMore: boolean = false) => {
     if (!currentBounds.value) return;
@@ -140,29 +188,7 @@ const fetchSidebarData = async (loadMore: boolean = false) => {
         };
 
         const response = await getSidebarAttractions(params);
-
-        const newItems = response.attractions.map(item => ({
-            id: String(item.attractionId),
-            imageUrl: item.imageUrl || image,
-            title: item.title || "이름 없음",
-            address: item.address || "주소 없음",
-            latitude: item.latitude,
-            longitude: item.longitude,
-            categoryCode: item.contentTypeId,
-            categoryName: getCategoryDisplayName(item.contentTypeId),
-            likes: item.likeCount || 0,
-            isLiked: likeStore.isLiked(item.attractionId),
-            isMarked: false,
-        }));
-
-        if (loadMore) {
-            searchResults.value = [...searchResults.value, ...newItems];
-        } else {
-            searchResults.value = newItems;
-        }
-
-        hasNext.value = response.hasNext;
-        page.value = response.nowPage;
+        processResponse(response, loadMore);
 
     } catch (error) {
         console.error("Failed to fetch sidebar attractions:", error);
@@ -177,6 +203,9 @@ const handleSearch = async (data: SearchData) => {
         alert("검색어, 지역 또는 카테고리를 선택해주세요.");
         return;
     }
+    
+    // 검색 시 인기 모드 해제
+    isPopularMode.value = false;
 
     if (isPlanPage.value) {
         // Plan 페이지일 경우: 부모에게 의존하지 않고 자체적으로 검색 수행
@@ -221,10 +250,15 @@ const handleReset = () => {
     page.value = 0;
     hasNext.value = false;
     emit('reset-request');
+    
+    // 초기화 시 다시 인기 여행지 로드
+    isPopularMode.value = true;
+    fetchPopularData(false);
 };
 
 const searchByBounds = async (bounds: any, filters: any = {}, isInitial: boolean = false) => {
     hasSearched.value = !isInitial;
+    isPopularMode.value = false; // 지도 이동 검색 시 인기 모드 해제
     currentBounds.value = bounds;
     currentFilters.value = filters;
     page.value = 0;
@@ -242,13 +276,26 @@ const handleScroll = (e: Event) => {
     if (!target) return;
 
     const { scrollTop, clientHeight, scrollHeight } = target;
-    if (scrollTop + clientHeight >= scrollHeight - 50) {
+    // 스크롤이 바닥에 가까워졌는지 확인 (여유분 50px)
+    if (scrollHeight - scrollTop - clientHeight < 50) {
         if (hasNext.value && !loading.value && !isLoadMore.value) {
             page.value += 1;
-            fetchSidebarData(true);
+            if (isPopularMode.value) {
+                fetchPopularData(true);
+            } else {
+                fetchSidebarData(true);
+            }
         }
     }
 };
+
+onMounted(() => {
+    // 처음에 검색 결과가 없으면 인기 여행지 로드
+    if (!hasSearched.value && searchResults.value.length === 0) {
+        isPopularMode.value = true;
+        fetchPopularData(false);
+    }
+});
 
 const getCurrentSearchData = (): SearchData | null => {
     if (searchFormRef.value) {

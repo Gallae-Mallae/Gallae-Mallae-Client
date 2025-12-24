@@ -1,3 +1,14 @@
+import imgAttraction from '@/assets/images/관광지.png';
+import imgCulture from '@/assets/images/문화시설.png';
+import imgFestival from '@/assets/images/축제.png';
+import imgCourse from '@/assets/images/여행코스.png';
+import imgLeports from '@/assets/images/레포츠.png';
+import imgLodge from '@/assets/images/숙박.png';
+import imgShopping from '@/assets/images/쇼핑.png';
+import imgFood from '@/assets/images/음식.png';
+import imgCafe from '@/assets/images/카페.png';
+import imgDefault from '@/assets/images/example_place.png';
+
 export function getCategoryVarName(code: number): string {
   switch (String(code)) {
     case "12":
@@ -45,5 +56,30 @@ export function getCategoryDisplayName(code: number): string {
       return "카페";
     default:
       return "기타";
+  }
+}
+
+export function getCategoryDefaultImage(code: number): string {
+  switch (String(code)) {
+    case "12":
+      return imgAttraction;
+    case "14":
+      return imgCulture;
+    case "15":
+      return imgFestival;
+    case "25":
+      return imgCourse;
+    case "28":
+      return imgLeports;
+    case "32":
+      return imgLodge;
+    case "38":
+      return imgShopping;
+    case "39":
+      return imgFood;
+    case "40":
+      return imgCafe;
+    default:
+      return imgDefault;
   }
 }
