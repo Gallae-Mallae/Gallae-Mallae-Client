@@ -30,7 +30,6 @@
             @close="isModalOpen = false"
             @show-on-map="handleShowOnMap"
             @mark="handleModalMark"
-            @share="(id) => console.log('Share attraction:', id)"
             @like="handleModalLike"
         />
 
