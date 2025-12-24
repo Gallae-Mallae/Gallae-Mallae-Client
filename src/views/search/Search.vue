@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'; // 라우터 훅 추가
 import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
 import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
+import ChatBotModal from '@/components/chatbot/ChatBotModal.vue'; // 챗봇 컴포넌트 추가
+
 const contentTypes = [
   { code: 12, name: "관광지", cssClass: "ATTRACTION" },
   { code: 14, name: "문화시설", cssClass: "CULTURE" },
@@ -23,6 +25,18 @@ const router = useRouter(); // 라우터 객체
 
 // 로딩 상태 (초기값 true)
 const isLoading = ref(true);
+
+// 챗봇 모달 상태
+const isChatBotOpen = ref(false);
+
+const handleChatBotPlaceClick = (placeId: string) => {
+    // 챗봇에서 추천된 장소 클릭 시 상세 모달 열기
+    // 챗봇 모달은 닫지 않고 위에 띄울지, 닫을지 결정 필요 -> "큰 모달창에서 ... 할 수 있도록" 이라 했으니 유지하는게 좋을수도 있으나
+    // 상세 모달도 꽤 크므로 겹칠 수 있음. 일단 챗봇은 유지하되 z-index 관리 필요.
+    // 여기서는 일단 상세 모달만 엽니다. (openGlobalDetailModal 내부 구현에 따름)
+    openGlobalDetailModal(placeId);
+};
+
 
 // 선택된 카테고리 상태 (null이면 선택 안함)
 const selectedCategory = ref<number | null>(null);
@@ -390,6 +404,12 @@ const handleSearchStateChange = (hasSearched: boolean) => {
 
 const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: number, level?: number }, title?: string) => {
   console.log(`[Search] 지도 하이라이트: ${placeId} (${coords.lat}, ${coords.lng})`);
+  
+  // 챗봇 모달이 열려있다면 닫기 (지도를 보기 위함)
+  if (isChatBotOpen.value) {
+      isChatBotOpen.value = false;
+  }
+
   if (mapInstance.value) {
     const moveLatLon = new (window as any).kakao.maps.LatLng(coords.lat, coords.lng);
     
@@ -633,11 +653,51 @@ onMounted(() => {
         </div>
       </transition>
 
+      <!-- 챗봇 플로팅 버튼 -->
+      <button class="chatbot-fab" @click="isChatBotOpen = true">
+        <span class="chatbot-icon">💬</span>
+      </button>
+
+      <!-- 챗봇 모달 -->
+      <ChatBotModal 
+        :isVisible="isChatBotOpen" 
+        @close="isChatBotOpen = false" 
+        @item-click="handleChatBotPlaceClick"
+      />
+
     </main>
   </div>
 </template>
 
 <style>
+/* 챗봇 플로팅 버튼 스타일 */
+.chatbot-fab {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(110, 142, 251, 0.4);
+  cursor: pointer;
+  z-index: 4000; /* 지도 컨트롤보다 위에, 로딩 오버레이보다는 아래 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chatbot-fab:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.chatbot-icon {
+  font-size: 28px;
+}
+
 /* 로딩 오버레이 스타일 */
 .loading-overlay {
     position: absolute;

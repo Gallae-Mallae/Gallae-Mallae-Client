@@ -1,23 +1,25 @@
 <template>
-    <div v-if="isVisible" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-container" :style="modalStyle">
-            <header class="modal-header">
-                <button class="close-button" @click="closeModal">
-                    <img src="@/assets/icons/ic_close.png" alt="닫기" class="close-icon" />
-                </button>
-            </header>
+    <Teleport to="body">
+        <div v-if="isVisible" class="modal-overlay" @click.self="closeModal">
+            <div class="modal-container" :style="modalStyle">
+                <header class="modal-header">
+                    <button class="close-button" @click="closeModal">
+                        <img src="@/assets/icons/ic_close.png" alt="닫기" class="close-icon" />
+                    </button>
+                </header>
 
-            <!-- 모달의 주요 내용을 넣을 부분 (로그인 버튼, 지도 등) -->
-            <div class="modal-content">
-                <slot></slot>
+                <!-- 모달의 주요 내용을 넣을 부분 (로그인 버튼, 지도 등) -->
+                <div class="modal-content">
+                    <slot></slot>
+                </div>
+
+                <!-- 필요 시 사용할 푸터 -->
+                <footer v-if="$slots.footer" class="modal-footer">
+                    <slot name="footer"></slot>
+                </footer>
             </div>
-
-            <!-- 필요 시 사용할 푸터 -->
-            <footer v-if="$slots.footer" class="modal-footer">
-                <slot name="footer"></slot>
-            </footer>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -61,7 +63,7 @@ const modalStyle = computed(() => ({
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 20000;
 }
 
 .modal-container {
