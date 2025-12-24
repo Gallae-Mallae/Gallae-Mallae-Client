@@ -13,19 +13,26 @@ export const useLikeStore = defineStore('like', () => {
 
     // 토글 액션 (UI에서 즉시 반영)
     const toggleLikeState = (placeId: number) => {
-        if (likedPlaceIds.value.has(placeId)) {
-            likedPlaceIds.value.delete(placeId);
+        const newSet = new Set(likedPlaceIds.value);
+        if (newSet.has(placeId)) {
+            newSet.delete(placeId);
         } else {
-            likedPlaceIds.value.add(placeId);
+            newSet.add(placeId);
         }
+        likedPlaceIds.value = newSet;
     };
     
     // 서버에서 내 좋아요 목록 가져와서 초기화
     const fetchMyLikes = async () => {
         try {
-            const ids = await getMyLikedIds();
-            likedPlaceIds.value = new Set(ids);
-            console.log('[LikeStore] 내 좋아요 목록 로드:', likedPlaceIds.value);
+            const response = await getMyLikedIds();
+
+            if (Array.isArray(response)) {
+                // 응답이 객체 배열이므로 attractionId를 추출하여 숫자로 저장
+                likedPlaceIds.value = new Set(response.map((item: any) => Number(item.attractionId || item.id)));
+            } else {
+                likedPlaceIds.value = new Set();
+            }
         } catch (error) {
             console.error('[LikeStore] 좋아요 목록 조회 실패:', error);
             // 비로그인 상태 등에서는 실패할 수 있으므로 에러를 삼킴
