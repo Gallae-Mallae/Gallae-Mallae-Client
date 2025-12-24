@@ -40,10 +40,13 @@ const formatDate = (dateStr: string) => {
 
 const scheduleItems = computed(() => {
   // 스토어의 planData가 바뀔 때마다 자동으로 재실행
-  const currentDay = planStore.planData?.dailySchedules.find(
+  if (!planStore.planData) return [];
+
+  const currentDay = planStore.planData.dailySchedules.find(
     (d) => d.dayNumber === props.data.dayNumber
   );
-  return currentDay ? currentDay.items : [];
+
+  return currentDay ? [...currentDay.items] : [];
 });
 
 const handleDrop = (event: DragEvent) => {
@@ -75,6 +78,13 @@ const handleDrop = (event: DragEvent) => {
   if (rawJson) {
     const dragData = JSON.parse(rawJson);
     if (dragData.type === 'MOVE_ITEM') {
+      planStore.updateItemPositionLocal(
+        dragData.blockId,
+        dragData.fromDay,
+        props.data.dayNumber,
+        startTimeStr
+      );
+
       planStore.requestMoveScheduleItem({
         blockId: dragData.blockId,
         fromDay: dragData.fromDay,
@@ -88,6 +98,14 @@ const handleDrop = (event: DragEvent) => {
   // 2. 신규 장소 추가 (PLACE)
   if (rawPlace) {
     const placeData: PlaceItemDTO = JSON.parse(rawPlace);
+
+    planStore.addScheduleBlockLocal({
+      day: props.data.dayNumber,
+      startTime: startTimeStr,
+      title: placeData.title,
+      categoryCode: Number(placeData.category)
+    });
+
     planStore.requestAddScheduleBlock({
       attractionId: Number(placeData.id),
       day: props.data.dayNumber,
@@ -97,11 +115,17 @@ const handleDrop = (event: DragEvent) => {
     return;
   }
 
-  // 3. 신규 메모 추가 (MEMO)
   if (rawMemo) {
     const memoData = JSON.parse(rawMemo);
+
+    planStore.addScheduleBlockLocal({
+      day: props.data.dayNumber,
+      startTime: startTimeStr,
+      title: memoData.title
+    });
+
     planStore.requestAddScheduleBlock({
-      attractionId: null, // 메모는 장소 정보 없음
+      attractionId: null,
       day: props.data.dayNumber,
       startTime: startTimeStr,
       title: memoData.title
@@ -111,6 +135,7 @@ const handleDrop = (event: DragEvent) => {
 };
 
 const handleRemoveItem = (blockId: number) => {
+  planStore.removeItemLocal(blockId);
   planStore.requestRemoveScheduleBlock(blockId);
 };
 </script>
@@ -163,7 +188,8 @@ const handleRemoveItem = (blockId: number) => {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
+  pointer-events: auto;
+  z-index: 2;
 }
 
 .items-container>* {

@@ -24,10 +24,8 @@
 
         <div class="memo-modal-wrapper" v-if="isMemoModalOpen" @mousedown.stop @mouseenter="isDraggable = false"
             @mouseleave="isDraggable = true">
-            <MemoModal :isVisible="isMemoModalOpen" :title="item.attraction ? item.title : '메모'"
-                :memoContents="item.memos" @close="planStore.closeMemo" @add-content="handleAddMemo"
-                @remove-content="handleRemoveMemo"
-                @reorder-memos="(newList) => planStore.updateMemoOrder(item.day, item.blockId, newList)" />
+            <MemoModal :isVisible="isMemoModalOpen" :title="item.attraction ? item.title : '메모'" :item="item"
+                :dayNumber="item.day" @close="planStore.closeMemo" />
         </div>
 
         <div class="resize-handle" @mousedown.stop.prevent="initResize"></div>
@@ -50,15 +48,8 @@ const emit = defineEmits(['click', 'remove']);
 const props = defineProps<{
     item: ScheduleItemDTO;
     unitHeight: number; // 1시간당 높이
+    dayNumber: number;
 }>();
-
-const handleAddMemo = (memoData: { type: 'TEXT' | 'LINK', content: string }) => {
-    planStore.addMemoToScheduleItem(props.item.day, props.item.blockId, memoData);
-};
-
-const handleRemoveMemo = (index: number) => {
-    planStore.removeMemoFromScheduleItem(props.item.day, props.item.blockId, index);
-};
 
 const handleClickOutside = (e: MouseEvent) => {
     const target = e.target as HTMLElement;

@@ -44,9 +44,14 @@ export interface MoveScheduleRequest {
 
 export interface MoveSocketData {
   blockId: number;
+  planId: number;
   day: number;
+  fromDay: number;
+  title: string;
   startTime: string;
   endTime: string;
+  attraction: any;
+  memos: any[];
 }
 
 export const moveScheduleItem = async (blockId: string, payload: any) => {

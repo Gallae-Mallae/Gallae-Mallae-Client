@@ -2,20 +2,20 @@
     <div v-if="isVisible" class="memo-modal-container">
         <header class="modal-header">
             <span class="modal-title">{{ title }}</span>
-            <button class="close-button" @click="$emit('close')">✕</button>
+            <button class="close-button" @click="planStore.closeMemo">✕</button>
         </header>
 
         <div class="modal-content">
-            <draggable :list="memoContents" item-key="contentId" class="memo-list" handle=".drag-handle"
-                ghost-class="ghost" @end="onDragEnd">
+            <draggable :list="item.memos" item-key="id" class="memo-list" handle=".drag-handle" ghost-class="ghost"
+                @end="onDragEnd">
                 <template #item="{ element, index }">
                     <div :class="['memo-item', element.type.toLowerCase()]">
                         <div class="drag-handle" @mousedown.stop>⠿</div>
-
                         <div class="memo-content-area">
                             <template v-if="element.type === 'LINK'">
-                                <a :href="formatUrl(element.content)" target="_blank" class="memo-link" @mousedown.stop>
-                                    {{ element.content }}
+                                <a :href="formatUrl(element.linkUrl || element.content)" target="_blank"
+                                    class="memo-link" @mousedown.stop>
+                                    {{ element.linkUrl || element.content }}
                                 </a>
                             </template>
                             <template v-else>
@@ -23,7 +23,7 @@
                             </template>
                         </div>
 
-                        <button class="remove-btn" @click="$emit('remove-content', index)">
+                        <button class="remove-btn" @click="handleRemove(index)">
                             <img src="@/assets/icons/ic_close.png" alt="삭제" />
                         </button>
                     </div>
@@ -31,7 +31,8 @@
             </draggable>
 
             <div v-if="editingType" :class="['input-wrapper', editingType.toLowerCase()]">
-                <input v-model="tempContent" @keyup.enter.prevent="handleSave" ref="inputRef" />
+                <input v-model="tempContent" @keyup.enter.prevent="handleSave" ref="inputRef"
+                    placeholder="내용을 입력하고 엔터를 누르세요" />
             </div>
         </div>
 
@@ -43,17 +44,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
-import type { MemoDTO } from '@/types/plan';
+import { ref, nextTick, onMounted } from 'vue';
+import { usePlanStore } from '@/stores/plan';
+import type { MemoDTO, ScheduleItemDTO } from "@/types/plan";
 import draggable from 'vuedraggable';
 
 const props = defineProps<{
     isVisible: boolean;
     title: string;
-    memoContents: MemoDTO[];
+    item: ScheduleItemDTO;
+    dayNumber: number;
 }>();
 
-const emit = defineEmits(['close', 'add-content', 'remove-content', 'reorder-memos']);
+const emit = defineEmits(['close']);
+const planStore = usePlanStore();
 
 const editingType = ref<'TEXT' | 'LINK' | null>(null);
 const tempContent = ref('');
@@ -70,15 +74,48 @@ const startEdit = (type: 'TEXT' | 'LINK') => {
     nextTick(() => inputRef.value?.focus());
 };
 
+// 메모 저장
 const handleSave = () => {
-    if (!tempContent.value.trim()) return;
-    emit('add-content', { type: editingType.value, content: tempContent.value });
+    if (!tempContent.value.trim() || !editingType.value) return;
+
+    planStore.requestAddMemo(
+        Number(props.item.blockId),
+        props.dayNumber,
+        { type: editingType.value, content: tempContent.value }
+    );
+
     tempContent.value = '';
     editingType.value = null;
 };
 
+// 메모 삭제
+const handleRemove = (index: number) => {
+const targetMemo = props.item.memos[index];
+
+    if (!targetMemo || !targetMemo.id) {
+        console.error("삭제 실패:", targetMemo);
+        return;
+    }
+    if (!props.dayNumber) {
+        console.error("삭제 실패: dayNumber가 props로 전달되지 않았습니다.");
+        return;
+    }
+
+    planStore.requestDeleteMemo(
+        targetMemo.id,
+        props.item.blockId,
+        props.dayNumber
+    );
+};
+
+// 메모 조회
+onMounted(() => {
+    if (props.item.blockId) {
+        planStore.fetchAndSyncMemos(props.item.blockId, props.dayNumber);
+    }
+});
+
 const onDragEnd = () => {
-    emit('reorder-memos', [...props.memoContents]);
 };
 </script>
 
