@@ -14,7 +14,7 @@
       <div class="chat-messages" ref="chatContainer">
         <div v-if="messages.length === 0" class="empty-state">
           <p>어디로 떠나고 싶으신가요?</p>
-          <p class="sub-text">"경주 여행지 추천해줘" 처럼 물어보세요!</p>
+          <p class="sub-text">지명이나 위치를 포함해서 질문해주세요!</p>
         </div>
 
         <div 

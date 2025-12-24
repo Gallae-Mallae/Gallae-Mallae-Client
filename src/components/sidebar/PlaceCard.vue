@@ -32,10 +32,6 @@
                 <button class="meta-item bookmark-toggle" @click.stop="$emit('mark', place.id)">
                     <img src="@/assets/icons/ic_mark.png" alt="북마크" class="icon-small" />
                 </button>
-
-                <span class="meta-item share-action" @click.stop="$emit('share', place.id)">
-                    <img src="@/assets/icons/ic_share.png" alt="공유" class="icon-small" />
-                </span>
             </div>
         </div>
 
@@ -60,7 +56,7 @@ const route = useRoute();
 const likeStore = useLikeStore();
 
 // 두 브랜치의 emit을 모두 정의
-const emit = defineEmits(['mark', 'share', 'click', 'like', 'delete']);
+const emit = defineEmits(['mark', 'click', 'like', 'delete']);
 
 // Props 정의
 const props = defineProps<{

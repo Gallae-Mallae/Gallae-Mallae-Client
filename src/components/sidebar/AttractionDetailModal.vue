@@ -32,9 +32,6 @@
             <button class="action-btn" @click="handleMark" title="내 장소 저장">
               <img src="@/assets/icons/ic_mark.png" alt="북마크" class="action-icon" />
             </button>
-            <button class="action-btn" @click="handleShare" title="공유하기">
-              <img src="@/assets/icons/ic_share.png" alt="공유" class="action-icon" />
-            </button>
           </div>
         </div>
 
@@ -47,9 +44,6 @@
           <span class="stat-item">
             <img src="@/assets/icons/ic_heart.png" alt="좋아요" class="icon-small" :class="{ 'red': isLiked }" />
             {{ detail.likeCount }}
-          </span>
-          <span class="stat-item">
-            조회수 {{ detail.viewCount }}
           </span>
         </div>
 
@@ -82,7 +76,7 @@ const props = defineProps<{
   detail: AttractionDetailResponse | null;
 }>();
 
-const emit = defineEmits(['close', 'show-on-map', 'mark', 'share', 'like']);
+const emit = defineEmits(['close', 'show-on-map', 'mark', 'like']);
 
 const likeStore = useLikeStore();
 const authStore = useAuthStore();
@@ -107,12 +101,6 @@ const handleShowOnMap = () => {
 const handleMark = () => {
   if (props.detail) {
     emit('mark', props.detail.attractionId);
-  }
-};
-
-const handleShare = () => {
-  if (props.detail) {
-    emit('share', props.detail.attractionId);
   }
 };
 
