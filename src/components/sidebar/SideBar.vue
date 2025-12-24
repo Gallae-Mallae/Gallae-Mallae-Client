@@ -147,7 +147,7 @@ const setTab = (tab: 'search' | 'my') => {
 
 .tab-content {
   flex-grow: 1;
-  overflow-y: auto;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;

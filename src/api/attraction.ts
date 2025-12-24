@@ -77,6 +77,18 @@ export const getSidebarAttractions = async (params: SidebarAttractionParams): Pr
   return data;
 };
 
+export interface PopularAttractionsParams {
+  page?: number;
+  size?: number;
+}
+
+export const getPopularAttractions = async (params: PopularAttractionsParams): Promise<SidebarListResponse> => {
+  const { data } = await axiosInstance.get<SidebarListResponse>('/attractions/map/popular', {
+    params,
+  });
+  return data;
+};
+
 export interface AttractionDetailResponse {
   attractionId: number;
   title: string;

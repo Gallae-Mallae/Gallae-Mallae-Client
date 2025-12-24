@@ -7,11 +7,11 @@
     <div v-else-if="detail" class="detail-container">
       <div class="image-wrapper">
         <!-- 기본 이미지일 때만 배경에 흐릿한 효과 적용 -->
-        <div v-if="!detail.imageUrl" class="image-bg-blur" :style="{ backgroundImage: `url(${defaultImage})` }"></div>
+        <div v-if="!detail.imageUrl" class="image-bg-blur" :style="{ backgroundImage: `url(${getCategoryDefaultImage(detail.contentTypeId)})` }"></div>
         
         <!-- 이미지가 있으면 cover(꽉 채움), 없으면 contain(비율 유지) -->
         <img 
-          :src="detail.imageUrl || defaultImage" 
+          :src="detail.imageUrl || getCategoryDefaultImage(detail.contentTypeId)" 
           :alt="detail.title" 
           class="detail-image" 
           :class="detail.imageUrl ? 'type-cover' : 'type-contain'"
@@ -65,10 +65,9 @@ import { computed } from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import type { AttractionDetailResponse } from '@/api/attraction';
 import { toggleLike } from '@/api/attraction';
-import { getCategoryDisplayName } from '@/utils/categoryMap';
+import { getCategoryDisplayName, getCategoryDefaultImage } from '@/utils/categoryMap';
 import { useLikeStore } from '@/stores/like';
 import { useAuthStore } from '@/stores/auth';
-import defaultImage from '@/assets/images/example_place.png';
 
 const props = defineProps<{
   isVisible: boolean;
@@ -210,6 +209,7 @@ const handleLike = () => {
   font-size: 13px;
   font-weight: 500;
   backdrop-filter: blur(4px);
+  z-index: 10;
 }
 
 .content-wrapper {
