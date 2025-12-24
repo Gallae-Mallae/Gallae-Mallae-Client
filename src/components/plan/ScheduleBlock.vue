@@ -76,11 +76,10 @@ onUnmounted(() => {
 });
 
 const blockStyle = computed(() => {
-    const categoryCode = props.item.attraction?.categoryCode ?? props.item.categoryCode;
-    const baseColor = categoryCode !== undefined
-        ? `var(--category-tag-bg-${getCategoryVarName(categoryCode)})`
-        : 'var(--category-tag-bg-ETC)';
-    const bgColor = `color-mix(in srgb, ${baseColor}, transparent 20%)`;
+    const item = props.item;
+    const finalType = item.categoryCode || (item.attraction as any)?.contentTypeId || 0;
+    const varName = getCategoryVarName(Number(finalType));
+    const bgColor = `var(--category-tag-bg-${varName})`;
 
     // 문자열 시간을 숫자로 변환
     const startMinutes = timeToMinutes(props.item.startTime);
@@ -126,21 +125,27 @@ const handleResize = (e: MouseEvent) => {
     if (!isResizing.value) return;
 
     const deltaY = e.clientY - startY.value;
-    // px 변화량을 분 단위 변화량으로 변환
     const deltaMinutes = (deltaY / props.unitHeight) * 60;
 
-    // 새로운 지속 시간 계산 (최소 30분)
     let newDuration = Math.max(30, startDuration.value + deltaMinutes);
     newDuration = Math.round(newDuration / 30) * 30;
 
     planStore.updateItemDuration(props.item.day, props.item.blockId, newDuration);
 };
 
-const stopResize = () => {
+const stopResize = async () => {
+    if (!isResizing.value) return;
+
     isResizing.value = false;
     window.removeEventListener('mousemove', handleResize);
     window.removeEventListener('mouseup', stopResize);
     document.body.style.cursor = 'default';
+
+    await planStore.requestResizeScheduleItem(
+        props.item.blockId,
+        props.item.endTime,
+        props.item.day
+    );
 };
 
 const isDraggable = ref(true);
@@ -183,7 +188,7 @@ const handleDragStart = (e: DragEvent) => {
     cursor: pointer;
     z-index: 10;
     position: absolute;
-    transition: opacity 0.2s, box-shadow 0.2s;
+    transition: none;
 }
 
 .schedule-block.is-active {

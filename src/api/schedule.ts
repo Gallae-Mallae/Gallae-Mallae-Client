@@ -36,12 +36,41 @@ export const createScheduleItem = async (planId: string, item: any) => {
   return await http.post(`/schedules/${planId}`, item);
 };
 
+/* 블록 이동 */
+export interface MoveScheduleRequest {
+  newDay: number;
+  newStartTime: string;
+}
+
+export interface MoveSocketData {
+  blockId: number;
+  day: number;
+  startTime: string;
+  endTime: string;
+}
+
 export const moveScheduleItem = async (blockId: string, payload: any) => {
-  return await http.put(`/schedules/${blockId}/position`, payload);
+  return await http.patch(`/schedules/${blockId}/position`, payload);
 };
 
+/* 블록 리사이징 */
+export interface ResizeScheduleRequest {
+  newEndTime: string;
+}
+
+export interface ResizeSocketData {
+  blockId: number;
+  planId: number;
+  day: number;
+  title: string;
+  startTime: string;
+  endTime: string;
+  attraction: any;
+  memos: any[];
+}
+
 export const resizeScheduleItem = async (blockId: string, payload: any) => {
-  return await http.put(`/schedules/${blockId}/resize`, payload);
+  return await http.patch(`/schedules/${blockId}/resize`, payload);
 };
 
 /* 블록 삭제 */
