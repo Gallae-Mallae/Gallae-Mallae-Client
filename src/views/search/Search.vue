@@ -461,10 +461,10 @@ const handleResetRequest = () => {
     showReSearchButton.value = false;
     clearMarkers();
     
-    // 리셋 시에도 현재 지도 기준 추천(랭킹) 데이터 로드
-    if (mapInstance.value && sideBarSearchTabRef.value) {
-        sideBarSearchTabRef.value.searchByBounds(mapInstance.value.getBounds(), { keyword: ' ' }, true);
-    }
+    // 리셋 시 지도 마커도 초기화하거나 전체 조회를 하려면 여기서 fetchMapMarkers() 호출 가능
+    // 하지만 "추천 장소 API"는 사이드바용이므로, 사이드바는 스스로 처리하게 두고 
+    // 지도는 클리어 상태로 두거나 필요 시 전체 마커 로드.
+    // 여기서는 일단 마커 클리어만 유지하고 사이드바의 인기모드 진입을 방해하지 않음.
 };
 
 const handleMarkAction = (placeId: string) => {
@@ -492,7 +492,7 @@ onMounted(() => {
 
   const options = {
     center: new (window as any).kakao.maps.LatLng(initialLat, initialLng),
-    level: 3
+    level: 14
   };
 
   try {
@@ -521,12 +521,10 @@ onMounted(() => {
 
                 isLoading.value = false;
             } else {
-                // 2. 일반 진입 시: 추천 데이터 로드 (기존 로직)
-                // API 제약(최소 1개 조건)을 우회하기 위해 공백 키워드 전송 시도
-                sideBarSearchTabRef.value.searchByBounds(map.getBounds(), { keyword: ' ' }, true)
-                    .finally(() => {
-                        isLoading.value = false; // 초기 데이터 로드 완료 시 로딩 해제
-                    });
+                // 2. 일반 진입 시: 지도 마커만 로드하고 사이드바는 인기 여행지 모드 유지
+                fetchMapMarkers().finally(() => {
+                    isLoading.value = false;
+                });
             }
             
             // 리스너 제거 (최초 1회만 실행)

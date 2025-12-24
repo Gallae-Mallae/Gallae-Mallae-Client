@@ -255,7 +255,7 @@ const handleDragStart = (event: DragEvent) => {
     font-size: var(--font-size-category);
     font-weight: 500;
     border-radius: 4px;
-    z-index: 1;
+    z-index: 10;
     background-color: var(--tag-bg, var(--category-tag-bg-default));
     color: var(--category-tag-color-text);
     user-select: none;
