@@ -45,6 +45,7 @@ const selectedCategory = ref<number | null>(null);
 const mapInstance = ref<any>(null);
 const showReSearchButton = ref(false);
 const isSearchMode = ref(false); // SideBarSearchTab의 hasSearched 상태 동기화
+const isPlanViewMode = ref(false); // 내 여행 코스 보기 모드
 const isPanningToCluster = ref(false); // 클러스터 이동 중인지 확인하는 플래그
 
 // 마커 관리를 위한 배열
@@ -535,8 +536,33 @@ onMounted(() => {
         if (sideBarSearchTabRef.value) {
           console.log('[Search] Initial map load complete. Fetching recommendations...');
 
-          const { action, placeId, lat, lng, title } = route.query;
-          if (action === 'highlight' && placeId && lat && lng) {
+          const { action, placeId, lat, lng, title, mode } = route.query;
+          
+          if (mode === 'plan_view') {
+             // 1. 내 여행 코스 보기 모드
+             console.log('[Search] Plan View Mode Activated');
+             isPlanViewMode.value = true;
+             
+             const storedItems = sessionStorage.getItem('PLAN_MAP_ITEMS');
+             if (storedItems) {
+                 const items = JSON.parse(storedItems);
+                 drawMarkers(items);
+                 
+                 // 마커들에 맞춰 지도 범위 재설정
+                 if (items.length > 0) {
+                     const bounds = new (window as any).kakao.maps.LatLngBounds();
+                     items.forEach((item: any) => {
+                         bounds.extend(new (window as any).kakao.maps.LatLng(item.latitude, item.longitude));
+                     });
+                     map.setBounds(bounds);
+                 }
+                 // 사용 후 삭제 (선택사항, 새로고침 시 유지를 위해 남길 수도 있음)
+                 // sessionStorage.removeItem('PLAN_MAP_ITEMS'); 
+             }
+             isLoading.value = false;
+
+          } else if (action === 'highlight' && placeId && lat && lng) {
+            // 2. 하이라이트 모드 (기존)
             console.log('[Search] Redirected with highlight action:', placeId);
             handleMapHighlight(String(placeId), {
               lat: Number(lat),
@@ -547,6 +573,7 @@ onMounted(() => {
             router.replace({ path: '/search', query: {} });
             isLoading.value = false;
           } else {
+            // 3. 일반 검색 모드 (기존)
             fetchMapMarkers().finally(() => {
               isLoading.value = false;
             });
@@ -575,7 +602,7 @@ onMounted(() => {
       );
 
       const checkBounds = () => {
-        if (isPanningToCluster.value) return;
+        if (isPanningToCluster.value || isPlanViewMode.value) return;
         const level = map.getLevel();
         const center = map.getCenter();
         let currentBounds;
@@ -597,6 +624,8 @@ onMounted(() => {
       };
 
       (window as any).kakao.maps.event.addListener(map, 'zoom_changed', () => {
+        if (isPlanViewMode.value) return;
+        
         const level = map.getLevel();
         if (level < 1) map.setLevel(1);
         else if (level > 13) map.setLevel(13);

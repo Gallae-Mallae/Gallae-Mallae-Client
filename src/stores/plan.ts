@@ -383,6 +383,14 @@ export const usePlanStore = defineStore("plan", () => {
 
   // 4. 일정 삭제
   const requestRemoveScheduleBlock = async (blockId: number) => {
+    // 💡 임시 항목인지 확인 (서버 전송 방지)
+    const item = findItemInAllDays(blockId);
+    if (item && item.isTemp) {
+      console.log(`임시 일정 삭제 (로컬): ${blockId}`);
+      removeItemLocal(blockId);
+      return;
+    }
+
     try {
       await deleteScheduleItem(String(blockId));
       console.log(`삭제 요청 성공`);
@@ -464,6 +472,13 @@ export const usePlanStore = defineStore("plan", () => {
     dayNumber: number
   ) => {
     if (!planData.value) return;
+
+    // 💡 임시 메모인지 확인 (서버 전송 방지)
+    if (String(memoId).startsWith('temp_')) {
+        console.log(`임시 메모 삭제 (로컬): ${memoId}`);
+        removeMemoLocal(dayNumber, blockId, memoId);
+        return;
+    }
 
     removeMemoLocal(dayNumber, blockId, memoId);
 

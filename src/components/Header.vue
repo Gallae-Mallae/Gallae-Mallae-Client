@@ -8,7 +8,8 @@
     </div>
 
     <div class="header-center">
-      <router-link to="/">
+      <router-link to="/" class="logo-link">
+        <img src="@/assets/icons/ms-icon-310x310.png" alt="Logo Icon" class="logo-icon" />
         <span class="logo">{{ strings.LOGO }}</span>
       </router-link>
     </div>
@@ -103,6 +104,19 @@ onUnmounted(() => {
   font-weight: bold;
   color: var(--color-primary-dark);
   text-decoration: none;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  gap: 8px;
+}
+
+.logo-icon {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
 }
 
 .header-center a {
