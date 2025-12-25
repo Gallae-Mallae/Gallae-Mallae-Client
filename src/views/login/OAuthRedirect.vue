@@ -1,5 +1,5 @@
 <template>
-<div class="oauth-redirect-container">
+    <div class="oauth-redirect-container">
         <div v-if="isLoading" class="loading-overlay">
             <!-- <p>인증 처리 중</p> -->
         </div>
@@ -18,25 +18,26 @@ const isLoading = ref(true);
 const error = ref(false);
 
 onMounted(async () => {
-    // 1. 이미 로그인된 상태에서 리다이렉트 페이지에 왔다면 로그아웃 복귀로 판단
-    if (authStore.isAuthenticated) {
-        authStore.clearLocalAuth();
-        router.replace('/');
-        return;
-    }
-
-    // 2. 로그인 처리 로직
     try {
+        // 1. 서버에 유저 정보를 요청 (세션/쿠키 확인)
         const user = await fetchUser();
-        authStore.setUser(user);
-        router.replace('/');
+
+        if (user) {
+            // 2. 유저 정보가 있으면 스토어에 저장 (로그인 성공)
+            authStore.setUser(user);
+            console.log("로그인 성공:", user.name);
+        } else {
+            // 유저 정보가 없으면 로컬 데이터 청소
+            authStore.clearLocalAuth();
+        }
     } catch (e) {
+        console.error("인증 처리 중 오류:", e);
+        authStore.clearLocalAuth(); // 에러 시에도 안전하게 비우기
         error.value = true;
-        setTimeout(() => {
-            router.replace('/');
-        }, 2000);
     } finally {
         isLoading.value = false;
+        // 3. 성공하든 실패하든 결국 메인으로 보냄
+        router.replace('/');
     }
 });
 </script>
@@ -45,7 +46,7 @@ onMounted(async () => {
 .oauth-redirect-container {
     width: 100%;
     height: 100vh;
-    background-image: url('@/assets/images/home.png'); 
+    background-image: url('@/assets/images/home.png');
     background-size: cover;
     background-position: center;
     display: flex;
