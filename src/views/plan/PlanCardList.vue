@@ -5,12 +5,12 @@
         </div>
 
         <div class="plan-list-grid">
-            <PlanCard v-for="plan in filteredPlans" :key="plan.id" :plan="plan" @edit-plan="handleEditPlan"
+            <PlanCard v-for="plan in filteredPlans" :key="plan.id" :plan="plan" 
                 @delete-plan="handleDeletePlan" @click="goToDetail(plan.id)" />
             <PlanCreateCard @create="handleCreatePlan" />
         </div>
 
-        <PlanFormModal :is-visible="isModalVisible" :mode="modalMode" :initial-plan="editingPlan" @close="closeModal"
+        <PlanFormModal :is-visible="isModalVisible" mode="CREATE" @close="closeModal"
             @submit="handleSubmitPlan" />
     </div>
 </template>
@@ -30,8 +30,8 @@ import type { PlanType, PlanDTO, PlanCardDTO } from '@/types/plan';
 
 
 // API 임포트
-import { createPlan, fetchPlans, updatePlan, deletePlan } from '@/api/plan';
-import type { CreatePlanRequest, UpdatePlanRequest } from '@/api/plan';
+import { createPlan, fetchPlans, deletePlan } from '@/api/plan';
+import type { CreatePlanRequest } from '@/api/plan';
 
 const router = useRouter();
 const planStore = usePlanStore();
@@ -40,7 +40,6 @@ const plans = ref<PlanDTO[]>([]);
 const isLoading = ref(false);
 const isModalVisible = ref(false);
 const modalMode = ref<'CREATE' | 'EDIT'>('CREATE');
-const editingPlan = ref<PlanCardDTO | undefined>(undefined);
 
 // 현재 선택된 탭 (기본값: 전체 일정)
 const currentPlanType = ref<PlanType>('ALL');
@@ -94,21 +93,18 @@ const handleTypeChange = (newType: PlanType) => {
 };
 
 // 모달 열기
-const openModal = (mode: 'CREATE' | 'EDIT') => {
-    modalMode.value = mode;
+const openModal = () => {
     isModalVisible.value = true;
 };
 
 // 모달 닫기
 const closeModal = () => {
     isModalVisible.value = false;
-    editingPlan.value = undefined;
 };
 
 // 일정 생성 클릭
 const handleCreatePlan = () => {
-    editingPlan.value = undefined;
-    openModal('CREATE');
+    openModal();
 };
 
 // 💡 일정 삭제 처리
@@ -126,78 +122,27 @@ const handleDeletePlan = async (planId: string) => {
     }
 };
 
-// 일정 수정 아이콘 클릭 시 호출
-const handleEditPlan = (planId: string) => {
-    // 1. 전체 목록에서 수정하려는 플랜 찾기
-    const planToEdit = plans.value.find(p => String(p.id) === String(planId));
-
-    if (planToEdit) {
-        // 2. 수정할 데이터 저장 (이 값이 PlanFormModal의 initialPlan으로 전달됨)
-        editingPlan.value = planToEdit;
-
-        // 3. 수정 모드로 모달 열기
-        openModal('EDIT');
-    } else {
-        console.error("수정할 플랜을 찾을 수 없습니다. ID:", planId);
-    }
-};
-
 // 💡 일정 수정 처리 (폼 제출)
 const handleSubmitPlan = async (payload: any) => {
     try {
-        if (modalMode.value === 'CREATE') {
-            try {
-                const requestData: CreatePlanRequest = {
-                    title: payload.title,
-                    startDate: payload.startDate,
-                    endDate: payload.endDate,
-                };
+        const requestData: CreatePlanRequest = {
+            title: payload.title,
+            startDate: payload.startDate,
+            endDate: payload.endDate,
+        };
 
-                const response = await createPlan(requestData);
+        const response = await createPlan(requestData);
 
-                closeModal();
+        closeModal();
 
-                // 생성 성공 후 바로 상세 페이지로 이동
-                router.push({
-                    name: 'PlanDetail',
-                    params: { id: response.planId.toString() }
-                });
+        // 생성 성공 후 바로 상세 페이지로 이동
+        router.push({
+            name: 'PlanDetail',
+            params: { id: response.planId.toString() }
+        });
 
-            } catch (error) {
-                console.error("일정 생성 중 오류 발생:", error);
-            }
-        }
-        else if (modalMode.value === 'EDIT' && editingPlan.value) {
-            // 1. 로컬 데이터 즉시 업데이트 (Optimistic UI)
-            const index = plans.value.findIndex(p => String(p.id) === String(editingPlan.value?.id));
-
-            if (index !== -1) {
-                // 💡 기존 객체의 필수값(ownerId, dailySchedules 등)을 보존하면서 
-                // 수정된 title, startDate, endDate만 덮어씌웁니다.
-                plans.value[index] = {
-                    ...plans.value[index],
-                    title: payload.title,
-                    startDate: payload.startDate,
-                    endDate: payload.endDate
-                } as PlanDTO;
-            }
-
-            // 2. 모달 닫기
-            closeModal();
-
-            // 3. 서버 요청 (시연을 위해 try-catch로 감싸서 500 에러 무시)
-            try {
-                await planStore.requestUpdatePlan(Number(editingPlan.value.id), {
-                    title: payload.title,
-                    startDate: payload.startDate,
-                    endDate: payload.endDate
-                });
-            } catch (e) {
-                console.warn("서버 수정은 실패(500)했지만 로컬 데이터는 유지합니다.");
-            }
-        }
     } catch (error) {
-        console.error("처리 중 오류 발생:", error);
+        console.error("일정 생성 중 오류 발생:", error);
     }
 };
 </script>

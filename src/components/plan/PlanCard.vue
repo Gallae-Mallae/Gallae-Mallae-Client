@@ -7,10 +7,6 @@
                 <img src="@/assets/icons/ic_delete_scrap.png" alt="삭제" class="icon-small" />
             </div>
 
-            <div class="action-wrapper edit-wrapper" @click="handleEditClick">
-                <img src="@/assets/icons/ic_edit_scrap.png" alt="수정" class="icon-small" />
-            </div>
-
             <div class="plan-card-info-overlay">
                 <h3 class="plan-card-title">{{ plan.title }}</h3>
                 <p class="plan-card-dates">
@@ -30,12 +26,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const emit = defineEmits(['editPlan', 'deletePlan']);
-
-const handleEditClick = (event: MouseEvent) => {
-    event.stopPropagation();
-    emit('editPlan', props.plan.id);
-};
+const emit = defineEmits(['deletePlan']);
 
 const handleDeleteClick = (event: MouseEvent) => {
     event.stopPropagation();
@@ -92,10 +83,6 @@ const handleDeleteClick = (event: MouseEvent) => {
 }
 
 .delete-wrapper {
-    left: 12px;
-}
-
-.edit-wrapper {
     right: 12px;
 }
 
