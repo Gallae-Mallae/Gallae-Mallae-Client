@@ -1,7 +1,7 @@
 <template>
     <div class="plan-page-layout">
 
-        <SideBar>
+        <SideBar v-if="authStore.isLoggedIn">
             <template #search>
                 <SideBarSearchTab />
             </template>
@@ -11,7 +11,13 @@
         </SideBar>
 
         <main class="main-content">
-            <router-view />
+            <div v-if="!authStore.isLoggedIn" class="login-required-overlay">
+                <div class="lock-icon">🔒</div>
+                <h3>로그인이 필요한 서비스입니다</h3>
+                <p>나만의 여행 계획을 세우고<br />친구들과 실시간으로 공유해보세요.</p>
+            </div>
+
+            <router-view v-else />
         </main>
 
     </div>
@@ -22,6 +28,7 @@ import { onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { usePlanStore } from '@/stores/plan';
 import { stompClient } from '@/utils/websocket';
+import { useAuthStore } from '@/stores/auth';
 
 import SideBar from '@/components/sidebar/SideBar.vue';
 import SideBarSearchTab from '@/views/sidebar/SideBarSearchTab.vue';
@@ -29,10 +36,13 @@ import SideBarMyTab from '@/views/sidebar/SideBarMyTab.vue';
 
 const route = useRoute();
 const planStore = usePlanStore();
+const authStore = useAuthStore();
 
 let planSubscription: any = null;
 
 const connectWebSocket = (planId: string) => {
+    if (!planId || !authStore.isLoggedIn) return;
+
     if (!planId) return;
 
     if (planSubscription) {
@@ -89,15 +99,51 @@ onUnmounted(() => {
 <style scoped>
 .plan-page-layout {
     display: flex;
-    height: 100%;
+    height: calc(100vh - 58px);
+    width: 100vw;
     overflow: hidden;
 }
 
 .main-content {
-    flex-grow: 1;
+    flex: 1;
     background-color: var(--color-gray-lightest, #f8f8f8);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: 100%;
+}
+
+.full-center {
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+}
+
+.login-required-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-top: 25vh;
+}
+
+.lock-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    line-height: 1;
+}
+
+.login-required-overlay h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1a1f27;
+}
+
+.login-required-overlay p {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.6;
 }
 </style>
