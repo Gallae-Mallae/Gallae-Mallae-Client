@@ -72,8 +72,10 @@ const dateRange = computed(() => {
     return `${plan.value.startDate} ~ ${plan.value.endDate}`;
 });
 
-const handleMapView = () => {
+const emit = defineEmits(['view-map']);
 
+const handleMapView = () => {
+    emit('view-map');
 };
 
 const handleCopy = () => {
