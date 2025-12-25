@@ -54,6 +54,8 @@ export interface ScheduleItemDTO {
 
   categoryCode?: number;
   // category?: string;
+
+  isTemp?: boolean;
 }
 
 export interface DailyScheduleDTO {

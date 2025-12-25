@@ -13,8 +13,8 @@
       </div>
 
       <div class="items-container">
-        <ScheduleBlock v-for="item in scheduleItems" :key="item.blockId" :item="item" :unit-height="80"
-          @remove="handleRemoveItem" />
+        <ScheduleBlock v-for="item in scheduleItems" :key="item.blockId" :day-number="item.day" :item="item"
+          :unit-height="80" @remove="handleRemoveItem" />
       </div>
     </div>
   </div>
