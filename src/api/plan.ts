@@ -37,6 +37,22 @@ export const createPlan = async (
   };
 };
 
+/* 초대받아 입장 */
+export interface JoinPlanRequest {
+  inviteCode: string;
+}
+
+export interface JoinPlanResponse {
+    planId: number;
+}
+
+export const joinPlanByCode = async (inviteCode: string): Promise<JoinPlanResponse> => {
+  const response = await http.post<JoinPlanResponse>('/plans/join', {
+    inviteCode: inviteCode
+  });
+  return response.data;
+};
+
 /* 참여자 목록 조회 */
 export interface PlanMemberResponse {
   memberId: number;
@@ -76,18 +92,42 @@ export interface ScheduleBlockResponse {
   }[];
 }
 
+// export const fetchPlanById = async (planId: number): Promise<PlanDTO> => {
+//   const [itemsRes, allPlans, membersRes] = await Promise.all([
+//     http.get<ScheduleBlockResponse[]>(`/schedules/${planId}`),
+//     fetchPlans(),
+//     fetchPlanMembers(planId),
+//   ]);
+
+//   const items = Array.isArray(itemsRes.data) ? itemsRes.data : [];
+//   const basicInfo = allPlans.find((p) => String(p.id) === String(planId));
+
+//   return mapToPlanDTO(planId, items, {
+//     ...(basicInfo || {}),
+//     participants: membersRes,
+//   });
+// };
+
 export const fetchPlanById = async (planId: number): Promise<PlanDTO> => {
-  const [itemsRes, allPlans, membersRes] = await Promise.all([
+  const [itemsRes, detailRes, membersRes] = await Promise.all([
+    // 1. 기존 스케줄 블록 정보 (보존)
     http.get<ScheduleBlockResponse[]>(`/schedules/${planId}`),
-    fetchPlans(),
+
+    // 2. 💡 fetchPlans() 대신 '상세 정보 API'로 교체 (inviteCode 포함)
+    http.get<any>(`/plans/${planId}`),
+
+    // 3. 기존 참여자 정보 (보존)
     fetchPlanMembers(planId),
   ]);
 
   const items = Array.isArray(itemsRes.data) ? itemsRes.data : [];
-  const basicInfo = allPlans.find((p) => String(p.id) === String(planId));
+  const detailData = detailRes.data;
 
+  // 💡 기존의 mapToPlanDTO를 그대로 사용하되,
+  // 목록에서 찾은 basicInfo 대신 서버에서 받은 detailData를 넣습니다.
   return mapToPlanDTO(planId, items, {
-    ...(basicInfo || {}),
+    ...detailData,
+    id: String(planId), // 혹은 detailData.planId.toString()
     participants: membersRes,
   });
 };

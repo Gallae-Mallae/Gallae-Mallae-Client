@@ -9,6 +9,7 @@ const HomeView = () => import("@/views/Home.vue");
 const PlanView = () => import("@/views/plan/Plan.vue");
 const PlanCardList = () => import("@/views/plan/PlanCardList.vue");
 const PlanTimetable = () => import("@/views/plan/PlanTimetable.vue");
+const PlanJoinView = () => import("@/views/plan/PlanJoin.vue");
 
 const SearchView = () => import("@/views/search/Search.vue");
 
@@ -27,6 +28,13 @@ const routes: Array<RouteRecordRaw> = [
     name: "SearchPlace",
     component: SearchView,
     meta: { title: "장소 검색" },
+  },
+
+  {
+    path: "/join",
+    name: "PlanJoin",
+    component: PlanJoinView,
+    meta: { title: "여행 합류하기", requiresAuth: true }, // 로그인 필요
   },
 
   {

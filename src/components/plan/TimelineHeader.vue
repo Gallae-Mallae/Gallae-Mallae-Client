@@ -23,10 +23,10 @@
                     <img src="@/assets/icons/ic_copy_link.png" alt="링크 복사 아이콘" class="action-icon" />
                     <span>{{ strings.COPY_LINK_BUTTON }}</span>
                 </button>
-                <button class="action-button secondary" @click="handleEditSaveToggle">
+                <!-- <button class="action-button secondary" @click="handleEditSaveToggle">
                     <img :src="saveEditButtonIcon" :alt="saveEditButtonText + ' 아이콘'" class="action-icon" />
                     <span>{{ saveEditButtonText }}</span>
-                </button>
+                </button> -->
             </div>
         </div>
     </header>
@@ -77,7 +77,47 @@ const handleMapView = () => {
 };
 
 const handleCopy = () => {
+    // 1. 초대 코드가 있는지 확인
+    const inviteCode = plan.value?.inviteCode;
 
+    if (!inviteCode) {
+        alert("초대 코드를 불러올 수 없습니다.");
+        return;
+    }
+
+    // 2. 복사할 URL 생성 (형식: 현재도메인/join?inviteCode=코드)
+    // 예: http://localhost:5173/join?inviteCode=550e8400-e29b...
+    const inviteUrl = `${window.location.origin}/join?inviteCode=${inviteCode}`;
+
+    // 3. 클립보드 복사 실행
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(inviteUrl)
+            .then(() => {
+                alert("초대 링크가 클립보드에 복사되었습니다. 친구에게 공유해보세요!");
+            })
+            .catch((err) => {
+                console.error("링크 복사 실패:", err);
+                fallbackCopyTextToClipboard(inviteUrl);
+            });
+    } else {
+        // 구형 브라우저 대응용 fallback
+        fallbackCopyTextToClipboard(inviteUrl);
+    }
+};
+
+// 브라우저 호환성을 위한 fallback 함수
+const fallbackCopyTextToClipboard = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("초대 링크가 복사되었습니다!");
+    } catch (err) {
+        alert("링크 복사에 실패했습니다.");
+    }
+    document.body.removeChild(textArea);
 };
 
 const handleSave = () => {
