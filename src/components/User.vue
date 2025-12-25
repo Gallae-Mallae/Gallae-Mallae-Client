@@ -14,6 +14,7 @@
 import { computed } from 'vue';
 import type { UserDTO } from '@/types/user';
 import defaultProfileIcon from '@/assets/icons/ic_default_profile.png';
+import { useAuthStore } from '@/stores/auth';
 
 interface Props {
     user: UserDTO;
@@ -24,8 +25,15 @@ const props = withDefaults(defineProps<Props>(), {
     showName: true,
 });
 
+const authStore = useAuthStore();
+
 // 닉네임 있으면 닉네임, 없으면 본명 사용
-const displayName = computed(() => props.user.nickname || props.user.name);
+const displayName = computed(() => {
+    if (authStore.user && props.user.userId === authStore.user.userId) {
+        return authStore.user.nickname || authStore.user.name;
+    }
+    return props.user.nickname || props.user.name;
+});
 
 // 프로필 이미지 있는지 확인
 const hasProfileImage = computed(() => !!props.user.profileImageUrl);

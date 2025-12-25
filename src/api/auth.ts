@@ -11,3 +11,14 @@ export const fetchUser = async (): Promise<UserDTO> => {
 export const reissueAccessToken = async (): Promise<void> => {
   await http.post("/auth/reissue");
 };
+
+/* 서버 로그아웃 처리 */
+export const logoutUser = async (): Promise<void> => {
+  await http.post("/auth/logout");
+};
+
+/* 닉네임 변경 */
+export const updateNickname = async (nickname: string): Promise<UserDTO> => {
+  const response = await http.patch<UserDTO>("/user/me", { nickname });
+  return response.data;
+};

@@ -16,21 +16,22 @@
     <div class="header-right">
       <template v-if="!authStore.isCheckingAuth">
         <div v-if="authStore.isLoggedIn && authStore.user" class="user-actions">
-
           <button class="link-button" @click="openScrapModal">
             <img src="@/assets/icons/ic_scrap.png" alt="스크랩북" class="link-icon" />
           </button>
-          <User :user="authStore.user" :show-name="false" @click="handleProfileClick" />
+
+          <div class="user-menu-wrapper">
+            <User :user="authStore.user" :show-name="false" @click.stop="handleProfileClick" />
+            <UserDropdown v-if="isUserDropdownOpen" @edit-nickname="handleEditNickname" @logout="handleLogout" />
+          </div>
         </div>
 
         <button v-else class="login-button" @click="openLoginModal">
           {{ strings.BUTTON_LOGIN }}
         </button>
       </template>
-
       <div v-else class="auth-loading-placeholder"></div>
     </div>
-
   </header>
 
   <LoginModal :is-visible="isLoginModalOpen" @close="closeLoginModal" />
@@ -39,11 +40,12 @@
 
 <script setup lang="ts">
 
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import strings from '@/assets/values/strings.header.json';
 import LoginModal from '@/views/login/LoginModal.vue';
 import ScrapModal from '@/views/scrap/ScrapModal.vue';
 import User from '@/components/User.vue';
+import UserDropdown from '@/components/UserDropdown.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
@@ -56,10 +58,32 @@ const isScrapModalOpen = ref(false);
 const openScrapModal = () => isScrapModalOpen.value = true;
 const closeScrapModal = () => isScrapModalOpen.value = false;
 
+const isUserDropdownOpen = ref(false);
+
 const handleProfileClick = () => {
-  // 프로필 클릭 시 처리 로직
+  isUserDropdownOpen.value = !isUserDropdownOpen.value;
 };
 
+const handleEditNickname = () => {
+  isUserDropdownOpen.value = false;
+};
+
+const handleLogout = async () => {
+  await authStore.handleLogout();
+  isUserDropdownOpen.value = false;
+};
+
+const closeDropdown = () => {
+  isUserDropdownOpen.value = false;
+};
+
+onMounted(() => {
+  window.addEventListener('click', closeDropdown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeDropdown);
+});
 </script>
 
 <style scoped>
@@ -151,5 +175,15 @@ const handleProfileClick = () => {
 .auth-loading-placeholder {
   width: 70px;
   height: 35px;
+}
+
+.user-menu-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.user-container) {
+  cursor: pointer;
 }
 </style>
