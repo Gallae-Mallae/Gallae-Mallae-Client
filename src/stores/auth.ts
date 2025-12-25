@@ -77,8 +77,6 @@ export const useAuthStore = defineStore("auth", {
 
         const kakaoLogoutUrl = `https://kauth.kakao.com/oauth/logout?client_id=${clientId}&logout_redirect_uri=${redirectUri}`;
 
-        // 3. 로컬 상태 초기화 후 카카오 로그아웃 페이지로 이동
-        this.clearLocalAuth();
         window.location.href = kakaoLogoutUrl;
       }
     },
