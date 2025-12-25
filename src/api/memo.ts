@@ -1,5 +1,4 @@
 import http from "./http";
-import type { MemoDTO } from "@/types/plan";
 
 // 메모 생성
 export interface MemoRequest {
