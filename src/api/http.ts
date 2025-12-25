@@ -44,7 +44,7 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       } catch (reissueError) {
         console.error("세션 만료: 재로그인 필요");
-        await authStore.handleLogout();
+        authStore.clearLocalAuth();
         router.push("/");
         return Promise.reject(reissueError);
       }

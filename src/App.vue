@@ -30,7 +30,7 @@ onMounted(async () => {
     }
   } catch (error) {
     console.log("로그인 정보 없음 또는 세션 만료");
-    await authStore.handleLogout();
+    authStore.clearLocalAuth();
   } finally {
     authStore.setLoading(false);
   }
