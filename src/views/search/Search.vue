@@ -30,11 +30,11 @@ const isLoading = ref(true);
 const isChatBotOpen = ref(false);
 
 const handleChatBotPlaceClick = (placeId: string) => {
-    // 챗봇에서 추천된 장소 클릭 시 상세 모달 열기
-    // 챗봇 모달은 닫지 않고 위에 띄울지, 닫을지 결정 필요 -> "큰 모달창에서 ... 할 수 있도록" 이라 했으니 유지하는게 좋을수도 있으나
-    // 상세 모달도 꽤 크므로 겹칠 수 있음. 일단 챗봇은 유지하되 z-index 관리 필요.
-    // 여기서는 일단 상세 모달만 엽니다. (openGlobalDetailModal 내부 구현에 따름)
-    openGlobalDetailModal(placeId);
+  // 챗봇에서 추천된 장소 클릭 시 상세 모달 열기
+  // 챗봇 모달은 닫지 않고 위에 띄울지, 닫을지 결정 필요 -> "큰 모달창에서 ... 할 수 있도록" 이라 했으니 유지하는게 좋을수도 있으나
+  // 상세 모달도 꽤 크므로 겹칠 수 있음. 일단 챗봇은 유지하되 z-index 관리 필요.
+  // 여기서는 일단 상세 모달만 엽니다. (openGlobalDetailModal 내부 구현에 따름)
+  openGlobalDetailModal(placeId);
 };
 
 
@@ -53,10 +53,10 @@ const customOverlays = ref<any[]>([]);
 
 // 현재 검색 필터 상태 (API 호출 시 사용)
 const currentFilters = ref<{
-    sido?: number;
-    guguns?: number;
-    keyword?: string;
-    contenttype?: number;
+  sido?: number;
+  guguns?: number;
+  keyword?: string;
+  contenttype?: number;
 }>({});
 
 // SideBarSearchTab 참조
@@ -65,13 +65,13 @@ const sideBarMyTabRef = ref<InstanceType<typeof SideBarMyTab> | null>(null);
 
 // 공통 상세 모달 오픈 함수
 const openGlobalDetailModal = (placeId: string) => {
-    if (activeTab.value === 'search' && sideBarSearchTabRef.value) {
-        sideBarSearchTabRef.value.openDetailModal(placeId);
-    } else if (activeTab.value === 'my' && sideBarMyTabRef.value) {
-        sideBarMyTabRef.value.handleAttractionClick(placeId);
-    } else if (sideBarSearchTabRef.value) {
-        sideBarSearchTabRef.value.openDetailModal(placeId);
-    }
+  if (activeTab.value === 'search' && sideBarSearchTabRef.value) {
+    sideBarSearchTabRef.value.openDetailModal(placeId);
+  } else if (activeTab.value === 'my' && sideBarMyTabRef.value) {
+    sideBarMyTabRef.value.handleAttractionClick(placeId);
+  } else if (sideBarSearchTabRef.value) {
+    sideBarSearchTabRef.value.openDetailModal(placeId);
+  }
 };
 
 // 마커 및 오버레이 초기화
@@ -88,269 +88,269 @@ const clearMarkers = () => {
 
 // 지도 API 호출 및 마커 그리기
 const fetchMapMarkers = async () => {
-    if (!mapInstance.value) return;
+  if (!mapInstance.value) return;
 
-    const bounds = mapInstance.value.getBounds();
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
-    const zoomLevel = mapInstance.value.getLevel();
+  const bounds = mapInstance.value.getBounds();
+  const sw = bounds.getSouthWest();
+  const ne = bounds.getNorthEast();
+  const zoomLevel = mapInstance.value.getLevel();
 
-    const params: MapAttractionParams = {
-        zoomLevel,
-        southWestLat: sw.getLat(),
-        southWestLng: sw.getLng(),
-        northEastLat: ne.getLat(),
-        northEastLng: ne.getLng(),
-        sido: currentFilters.value.sido || undefined,
-        guguns: currentFilters.value.guguns || undefined,
-        keyword: currentFilters.value.keyword || undefined,
-        contenttype: currentFilters.value.contenttype || undefined
-    };
+  const params: MapAttractionParams = {
+    zoomLevel,
+    southWestLat: sw.getLat(),
+    southWestLng: sw.getLng(),
+    northEastLat: ne.getLat(),
+    northEastLng: ne.getLng(),
+    sido: currentFilters.value.sido || undefined,
+    guguns: currentFilters.value.guguns || undefined,
+    keyword: currentFilters.value.keyword || undefined,
+    contenttype: currentFilters.value.contenttype || undefined
+  };
 
-    try {
-        const data = await getMapAttractions(params);
-        console.log(`[Map] Fetched ${data.length} items from /api/attractions/map`);
-        drawMarkers(data);
-    } catch (error) {
-        console.error("Failed to fetch map attractions:", error);
-    }
+  try {
+    const data = await getMapAttractions(params);
+    console.log(`[Map] Fetched ${data.length} items from /api/attractions/map`);
+    drawMarkers(data);
+  } catch (error) {
+    console.error("Failed to fetch map attractions:", error);
+  }
 };
 
 // 데이터 기반으로 마커/오버레이 그리기
 const drawMarkers = (data: MapAttractionResponse[]) => {
-    clearMarkers();
+  clearMarkers();
 
-    if (!mapInstance.value) return;
+  if (!mapInstance.value) return;
 
-    const serverClusters: MapAttractionResponse[] = [];
-    const singlePlaces: MapAttractionResponse[] = [];
+  const serverClusters: MapAttractionResponse[] = [];
+  const singlePlaces: MapAttractionResponse[] = [];
 
-    // 1. 데이터 분류
-    data.forEach(item => {
-        if (item.count > 1) serverClusters.push(item);
-        else singlePlaces.push(item);
+  // 1. 데이터 분류
+  data.forEach(item => {
+    if (item.count > 1) serverClusters.push(item);
+    else singlePlaces.push(item);
+  });
+
+  // 2. 서버 사이드 클러스터 그리기 (기존 로직)
+  serverClusters.forEach(item => {
+    const position = new (window as any).kakao.maps.LatLng(item.latitude, item.longitude);
+    const content = document.createElement('div');
+
+    // 클러스터 크기 계산 (로그 스케일 적용)
+    // 기본 30px, count가 커질수록 커짐. max 제한 (예: 70px)
+    const baseSize = 30;
+    const maxSize = 70;
+    const logCount = Math.log10(item.count);
+    let size = baseSize + (logCount * 10);
+    if (size > maxSize) size = maxSize;
+
+    content.className = 'cluster-overlay';
+    content.style.width = `${size}px`;
+    content.style.height = `${size}px`;
+    content.innerHTML = `<div class="cluster-count">${item.count}</div>`;
+
+    content.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!mapInstance.value) return;
+
+      console.log(`[Cluster] Clicked! Snapping to ${item.latitude}, ${item.longitude}`);
+      isPanningToCluster.value = true;
+      mapInstance.value.setCenter(position);
+
+      const currentLevel = mapInstance.value.getLevel();
+      const newLevel = Math.max(1, currentLevel - 2);
+
+      setTimeout(() => {
+        mapInstance.value.setLevel(newLevel, { animate: true });
+      }, 50);
+
+      setTimeout(() => {
+        console.log("[Cluster] Animation finished. Re-fetching...");
+        isPanningToCluster.value = false;
+        fetchMapMarkers();
+      }, 800);
     });
 
-    // 2. 서버 사이드 클러스터 그리기 (기존 로직)
-    serverClusters.forEach(item => {
-        const position = new (window as any).kakao.maps.LatLng(item.latitude, item.longitude);
-        const content = document.createElement('div');
-        
-        // 클러스터 크기 계산 (로그 스케일 적용)
-        // 기본 30px, count가 커질수록 커짐. max 제한 (예: 70px)
-        const baseSize = 30;
-        const maxSize = 70;
-        const logCount = Math.log10(item.count);
-        let size = baseSize + (logCount * 10); 
-        if (size > maxSize) size = maxSize;
-
-        content.className = 'cluster-overlay';
-        content.style.width = `${size}px`;
-        content.style.height = `${size}px`;
-        content.innerHTML = `<div class="cluster-count">${item.count}</div>`;
-
-        content.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!mapInstance.value) return;
-
-            console.log(`[Cluster] Clicked! Snapping to ${item.latitude}, ${item.longitude}`);
-            isPanningToCluster.value = true;
-            mapInstance.value.setCenter(position);
-
-            const currentLevel = mapInstance.value.getLevel();
-            const newLevel = Math.max(1, currentLevel - 2);
-
-            setTimeout(() => {
-                mapInstance.value.setLevel(newLevel, { animate: true });
-            }, 50);
-
-            setTimeout(() => {
-                console.log("[Cluster] Animation finished. Re-fetching...");
-                isPanningToCluster.value = false;
-                fetchMapMarkers();
-            }, 800);
-        });
-        
-        const overlay = new (window as any).kakao.maps.CustomOverlay({
-            position: position,
-            content: content,
-            xAnchor: 0.5,
-            yAnchor: 0.5,
-            clickable: false
-        });
-        
-        overlay.setMap(mapInstance.value);
-        customOverlays.value.push(overlay);
+    const overlay = new (window as any).kakao.maps.CustomOverlay({
+      position: position,
+      content: content,
+      xAnchor: 0.5,
+      yAnchor: 0.5,
+      clickable: false
     });
 
-    // 3. 개별 장소 좌표 그룹핑 (겹침 확인)
-    const groupedPlaces = new Map<string, MapAttractionResponse[]>();
-    singlePlaces.forEach(item => {
-        const key = `${item.latitude},${item.longitude}`;
-        if (!groupedPlaces.has(key)) groupedPlaces.set(key, []);
-        groupedPlaces.get(key)!.push(item);
-    });
+    overlay.setMap(mapInstance.value);
+    customOverlays.value.push(overlay);
+  });
 
-    // 4. 그룹핑된 장소 그리기
-    groupedPlaces.forEach((items, key) => {
-        const firstItem = items[0]!;
-        const position = new (window as any).kakao.maps.LatLng(firstItem.latitude, firstItem.longitude);
+  // 3. 개별 장소 좌표 그룹핑 (겹침 확인)
+  const groupedPlaces = new Map<string, MapAttractionResponse[]>();
+  singlePlaces.forEach(item => {
+    const key = `${item.latitude},${item.longitude}`;
+    if (!groupedPlaces.has(key)) groupedPlaces.set(key, []);
+    groupedPlaces.get(key)!.push(item);
+  });
 
-        if (items.length === 1) {
-            // [단일 장소] 빨간 핀 마커
-            const item = items[0]!;
-            const content = document.createElement('div');
-            content.className = 'custom-marker-container';
-            
-            content.innerHTML = `
+  // 4. 그룹핑된 장소 그리기
+  groupedPlaces.forEach((items, key) => {
+    const firstItem = items[0]!;
+    const position = new (window as any).kakao.maps.LatLng(firstItem.latitude, firstItem.longitude);
+
+    if (items.length === 1) {
+      // [단일 장소] 빨간 핀 마커
+      const item = items[0]!;
+      const content = document.createElement('div');
+      content.className = 'custom-marker-container';
+
+      content.innerHTML = `
                 <img src="data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2230%22%20height%3D%2242%22%20viewBox%3D%220%200%2030%2042%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M15%200C6.71573%200%200%206.71573%200%2015C0%2026.25%2015%2042%2015%2042C15%2042%2030%2026.25%2030%2015C30%206.71573%2023.2843%200%2015%200Z%22%20fill%3D%22%23EA4335%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23960F0F%22%2F%3E%3C%2Fsvg%3E" class="marker-icon" alt="marker">
                 <span class="marker-title">${item.title}</span>
             `;
 
-            content.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const placeId = String((item as any).attractionId || item.attrId);
-                if (placeId !== 'undefined' && placeId !== 'NaN') {
-                    openGlobalDetailModal(placeId);
-                }
-            });
+      content.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const placeId = String((item as any).attractionId || item.attrId);
+        if (placeId !== 'undefined' && placeId !== 'NaN') {
+          openGlobalDetailModal(placeId);
+        }
+      });
 
-            const overlay = new (window as any).kakao.maps.CustomOverlay({
-                position: position,
-                content: content,
-                xAnchor: 0.5,
-                yAnchor: 1.0,
-                clickable: true
-            });
+      const overlay = new (window as any).kakao.maps.CustomOverlay({
+        position: position,
+        content: content,
+        xAnchor: 0.5,
+        yAnchor: 1.0,
+        clickable: true
+      });
 
-            overlay.setMap(mapInstance.value);
-            customOverlays.value.push(overlay);
+      overlay.setMap(mapInstance.value);
+      customOverlays.value.push(overlay);
 
-        } else {
-            // [중복 장소] 묶음 마커 (+N)
-            const content = document.createElement('div');
-            content.className = 'bundle-marker-container';
-            
-            // 목록 아이템 생성
-            const listItemsHtml = items.map(item => `
+    } else {
+      // [중복 장소] 묶음 마커 (+N)
+      const content = document.createElement('div');
+      content.className = 'bundle-marker-container';
+
+      // 목록 아이템 생성
+      const listItemsHtml = items.map(item => `
                 <div class="bundle-item" data-id="${(item as any).attractionId || item.attrId}">
                     ${item.title}
                 </div>
             `).join('');
 
-            content.innerHTML = `
+      content.innerHTML = `
                 <div class="bundle-badge">+${items.length}</div>
                 <div class="bundle-list" style="display: none;">
                     ${listItemsHtml}
                 </div>
             `;
 
-            // 오버레이 먼저 생성 (이벤트 리스너에서 참조하기 위해)
-            const overlay = new (window as any).kakao.maps.CustomOverlay({
-                position: position,
-                content: content,
-                xAnchor: 0.5,
-                yAnchor: 1.0,
-                clickable: true,
-                zIndex: 3000
-            });
+      // 오버레이 먼저 생성 (이벤트 리스너에서 참조하기 위해)
+      const overlay = new (window as any).kakao.maps.CustomOverlay({
+        position: position,
+        content: content,
+        xAnchor: 0.5,
+        yAnchor: 1.0,
+        clickable: true,
+        zIndex: 3000
+      });
 
-            // 클릭 이벤트 (배지 클릭 시 리스트 토글 및 zIndex 상향)
-            const badge = content.querySelector('.bundle-badge');
-            const list = content.querySelector('.bundle-list') as HTMLElement;
+      // 클릭 이벤트 (배지 클릭 시 리스트 토글 및 zIndex 상향)
+      const badge = content.querySelector('.bundle-badge');
+      const list = content.querySelector('.bundle-list') as HTMLElement;
 
-            if (badge && list) {
-                badge.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    
-                    // 다른 열려있는 리스트 닫기 및 zIndex 초기화
-                    // (전역 관리가 없으므로 간단히 DOM 조작은 어렵고, 현재 열린 것만 처리)
-                    // 완벽하게 하려면 모든 overlay를 순회해야 하나, 여기선 '나를 최상위로' 만으로도 충분할 수 있음.
-                    // 더 좋은 방법: customOverlays 배열 활용
-                    customOverlays.value.forEach(ov => {
-                        if (ov !== overlay) {
-                            // ov.getZIndex()는 카카오맵 API에 없을 수 있으므로 안전하게 처리
-                            // ov.setZIndex(3000); // 다른 번들은 3000으로 리셋
-                        }
-                    });
-                    
-                    // 리스트 토글
-                    const isOpening = list.style.display === 'none';
-                    document.querySelectorAll('.bundle-list').forEach(el => {
-                        (el as HTMLElement).style.display = 'none';
-                    });
-                    
-                    if (isOpening) {
-                        list.style.display = 'block';
-                        overlay.setZIndex(9999); // [핵심] 리스트 열릴 때 최상위로
-                    } else {
-                        list.style.display = 'none';
-                        overlay.setZIndex(3000); // 닫히면 원래대로
-                    }
-                });
+      if (badge && list) {
+        badge.addEventListener('click', (e) => {
+          e.stopPropagation();
 
-                // [중요] 리스트 내에서 스크롤 및 드래그 시 지도 이벤트 전파 방지
-                const stopMapEvents = (e: Event) => e.stopPropagation();
-                list.addEventListener('wheel', stopMapEvents);
-                list.addEventListener('mousedown', stopMapEvents);
-                list.addEventListener('touchstart', stopMapEvents);
+          // 다른 열려있는 리스트 닫기 및 zIndex 초기화
+          // (전역 관리가 없으므로 간단히 DOM 조작은 어렵고, 현재 열린 것만 처리)
+          // 완벽하게 하려면 모든 overlay를 순회해야 하나, 여기선 '나를 최상위로' 만으로도 충분할 수 있음.
+          // 더 좋은 방법: customOverlays 배열 활용
+          customOverlays.value.forEach(ov => {
+            if (ov !== overlay) {
+              // ov.getZIndex()는 카카오맵 API에 없을 수 있으므로 안전하게 처리
+              // ov.setZIndex(3000); // 다른 번들은 3000으로 리셋
             }
+          });
 
-            // 리스트 아이템 클릭 (상세 모달 열기)
-            content.querySelectorAll('.bundle-item').forEach(itemEl => {
-                itemEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const placeId = (e.target as HTMLElement).dataset.id;
-                    if (placeId) {
-                        openGlobalDetailModal(placeId);
-                        list.style.display = 'none'; // 선택 후 닫기
-                        overlay.setZIndex(3000); // 선택 후 zIndex 복구
-                    }
-                });
-            });
+          // 리스트 토글
+          const isOpening = list.style.display === 'none';
+          document.querySelectorAll('.bundle-list').forEach(el => {
+            (el as HTMLElement).style.display = 'none';
+          });
 
-            overlay.setMap(mapInstance.value);
-            customOverlays.value.push(overlay);
-        }
-    });
+          if (isOpening) {
+            list.style.display = 'block';
+            overlay.setZIndex(9999); // [핵심] 리스트 열릴 때 최상위로
+          } else {
+            list.style.display = 'none';
+            overlay.setZIndex(3000); // 닫히면 원래대로
+          }
+        });
+
+        // [중요] 리스트 내에서 스크롤 및 드래그 시 지도 이벤트 전파 방지
+        const stopMapEvents = (e: Event) => e.stopPropagation();
+        list.addEventListener('wheel', stopMapEvents);
+        list.addEventListener('mousedown', stopMapEvents);
+        list.addEventListener('touchstart', stopMapEvents);
+      }
+
+      // 리스트 아이템 클릭 (상세 모달 열기)
+      content.querySelectorAll('.bundle-item').forEach(itemEl => {
+        itemEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const placeId = (e.target as HTMLElement).dataset.id;
+          if (placeId) {
+            openGlobalDetailModal(placeId);
+            list.style.display = 'none'; // 선택 후 닫기
+            overlay.setZIndex(3000); // 선택 후 zIndex 복구
+          }
+        });
+      });
+
+      overlay.setMap(mapInstance.value);
+      customOverlays.value.push(overlay);
+    }
+  });
 };
 
 // 사이드바 검색 요청 처리 (유일한 검색 시작점)
 const handleSidebarSearchRequest = (data: SearchData) => {
-    // 필터 업데이트 (사이드바 폼 + 현재 선택된 카테고리)
-    currentFilters.value = {
-        sido: data.sidoCode || undefined,
-        guguns: data.gugunCode || undefined,
-        keyword: data.query || undefined,
-        contenttype: selectedCategory.value || undefined
-    };
+  // 필터 업데이트 (사이드바 폼 + 현재 선택된 카테고리)
+  currentFilters.value = {
+    sido: data.sidoCode || undefined,
+    guguns: data.gugunCode || undefined,
+    keyword: data.query || undefined,
+    contenttype: selectedCategory.value || undefined
+  };
 
-    const hasActiveFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
+  const hasActiveFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
 
-    if (hasActiveFilters) {
-        // 검색 조건이 있으면 검색 모드 활성화 및 API 호출
-        isSearchMode.value = true;
-        fetchMapMarkers();
+  if (hasActiveFilters) {
+    // 검색 조건이 있으면 검색 모드 활성화 및 API 호출
+    isSearchMode.value = true;
+    fetchMapMarkers();
 
-        // 사이드바 리스트도 함께 갱신
-        if (mapInstance.value && sideBarSearchTabRef.value) {
-            sideBarSearchTabRef.value.searchByBounds(mapInstance.value.getBounds(), currentFilters.value);
-        }
-    } else {
-        // 검색 조건이 없으면 검색 모드 해제 및 초기화
-        isSearchMode.value = false;
-        clearMarkers();
-        showReSearchButton.value = false;
+    // 사이드바 리스트도 함께 갱신
+    if (mapInstance.value && sideBarSearchTabRef.value) {
+      sideBarSearchTabRef.value.searchByBounds(mapInstance.value.getBounds(), currentFilters.value);
     }
+  } else {
+    // 검색 조건이 없으면 검색 모드 해제 및 초기화
+    isSearchMode.value = false;
+    clearMarkers();
+    showReSearchButton.value = false;
+  }
 };
 
 // 지도 내 재검색 버튼 클릭
 const handleReSearchInMap = async () => {
   if (!mapInstance.value || !sideBarSearchTabRef.value) return;
-  
+
   // [중요] 검색 폼의 현재 상태 가져오기
   const currentSearchData = sideBarSearchTabRef.value.getCurrentSearchData();
-  
+
   // 유효성 검사: 조건이 하나라도 있는지 확인
   const hasKeyword = currentSearchData?.query && currentSearchData.query.trim() !== '';
   const hasSido = currentSearchData?.sidoCode;
@@ -358,20 +358,20 @@ const handleReSearchInMap = async () => {
   const hasCategory = selectedCategory.value !== null;
 
   if (!hasKeyword && !hasSido && !hasGugun && !hasCategory) {
-      alert("검색어, 지역 또는 카테고리를 하나 이상 선택해주세요.");
-      return;
+    alert("검색어, 지역 또는 카테고리를 하나 이상 선택해주세요.");
+    return;
   }
 
   const bounds = mapInstance.value.getBounds();
   showReSearchButton.value = false; // 버튼 숨기기
-  
+
   if (currentSearchData) {
-      currentFilters.value = {
-          sido: currentSearchData.sidoCode || undefined,
-          guguns: currentSearchData.gugunCode || undefined,
-          keyword: currentSearchData.query || undefined,
-          contenttype: selectedCategory.value || undefined
-      };
+    currentFilters.value = {
+      sido: currentSearchData.sidoCode || undefined,
+      guguns: currentSearchData.gugunCode || undefined,
+      keyword: currentSearchData.query || undefined,
+      contenttype: selectedCategory.value || undefined
+    };
   }
 
   // 1. 지도 마커 갱신 (현재 필터 + 현재 뷰포트)
@@ -396,39 +396,39 @@ const onMapInteract = () => {
 const activeTab = ref('search'); // 현재 어떤 탭이 활성 상태인지 추적
 
 const handleTabChange = (tab: string) => {
-    activeTab.value = tab;
-    if (tab === 'my') {
-        showReSearchButton.value = false;
-    }
+  activeTab.value = tab;
+  if (tab === 'my') {
+    showReSearchButton.value = false;
+  }
 };
 
 const handleSearchStateChange = (hasSearched: boolean) => {
-    isSearchMode.value = hasSearched;
-    if (!hasSearched) {
-        showReSearchButton.value = false;
-        clearMarkers(); // 검색 초기화 시 마커도 제거?
-        currentFilters.value = {}; // 필터 초기화
-    } else {
-        showReSearchButton.value = false;
-    }
+  isSearchMode.value = hasSearched;
+  if (!hasSearched) {
+    showReSearchButton.value = false;
+    clearMarkers(); // 검색 초기화 시 마커도 제거?
+    currentFilters.value = {}; // 필터 초기화
+  } else {
+    showReSearchButton.value = false;
+  }
 };
 
 const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: number, level?: number }, title?: string) => {
   console.log(`[Search] 지도 하이라이트: ${placeId} (${coords.lat}, ${coords.lng})`);
-  
+
   // 챗봇 모달이 열려있다면 닫기 (지도를 보기 위함)
   if (isChatBotOpen.value) {
-      isChatBotOpen.value = false;
+    isChatBotOpen.value = false;
   }
 
   if (mapInstance.value) {
     const moveLatLon = new (window as any).kakao.maps.LatLng(coords.lat, coords.lng);
-    
+
     // 줌 레벨 정보가 있으면 변경
     if (coords.level) {
-        mapInstance.value.setLevel(coords.level);
+      mapInstance.value.setLevel(coords.level);
     }
-    
+
     // panTo는 애니메이션 때문에 bounds 업데이트 타이밍이 꼬일 수 있어 setCenter 사용
     mapInstance.value.setCenter(moveLatLon);
 
@@ -438,44 +438,44 @@ const handleMapHighlight = async (placeId: string, coords: { lat: number, lng: n
 
     // [중요] 강제 마커 표시 (API 결과와 무관하게 사용자가 선택한 장소를 확실히 표시)
     if (title) {
-        const content = document.createElement('div');
-        content.className = 'custom-marker-container';
-        content.innerHTML = `
+      const content = document.createElement('div');
+      content.className = 'custom-marker-container';
+      content.innerHTML = `
             <img src="data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2230%22%20height%3D%2242%22%20viewBox%3D%220%200%2030%2042%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M15%200C6.71573%200%200%206.71573%200%2015C0%2026.25%2015%2042%2015%2042C15%2042%2030%2026.25%2030%2015C30%206.71573%2023.2843%200%2015%200Z%22%20fill%3D%22%23EA4335%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2215%22%20r%3D%226%22%20fill%3D%22%23960F0F%22%2F%3E%3C%2Fsvg%3E" class="marker-icon" alt="marker">
             <span class="marker-title" style="background-color: #fff; border: 2px solid #EA4335; font-weight: bold;">${title}</span>
         `;
 
-        content.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openGlobalDetailModal(placeId);
-        });
+      content.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openGlobalDetailModal(placeId);
+      });
 
-        const overlay = new (window as any).kakao.maps.CustomOverlay({
-            position: moveLatLon,
-            content: content,
-            xAnchor: 0.5,
-            yAnchor: 1.0,
-            clickable: true,
-            zIndex: 9999 // 최상위
-        });
+      const overlay = new (window as any).kakao.maps.CustomOverlay({
+        position: moveLatLon,
+        content: content,
+        xAnchor: 0.5,
+        yAnchor: 1.0,
+        clickable: true,
+        zIndex: 9999 // 최상위
+      });
 
-        overlay.setMap(mapInstance.value);
-        customOverlays.value.push(overlay);
+      overlay.setMap(mapInstance.value);
+      customOverlays.value.push(overlay);
     }
   }
 };
 
 const handleResetRequest = () => {
-    selectedCategory.value = null;
-    currentFilters.value = {};
-    isSearchMode.value = false;
-    showReSearchButton.value = false;
-    clearMarkers();
-    
-    // 리셋 시 지도 마커도 초기화하거나 전체 조회를 하려면 여기서 fetchMapMarkers() 호출 가능
-    // 하지만 "추천 장소 API"는 사이드바용이므로, 사이드바는 스스로 처리하게 두고 
-    // 지도는 클리어 상태로 두거나 필요 시 전체 마커 로드.
-    // 여기서는 일단 마커 클리어만 유지하고 사이드바의 인기모드 진입을 방해하지 않음.
+  selectedCategory.value = null;
+  currentFilters.value = {};
+  isSearchMode.value = false;
+  showReSearchButton.value = false;
+  clearMarkers();
+
+  // 리셋 시 지도 마커도 초기화하거나 전체 조회를 하려면 여기서 fetchMapMarkers() 호출 가능
+  // 하지만 "추천 장소 API"는 사이드바용이므로, 사이드바는 스스로 처리하게 두고 
+  // 지도는 클리어 상태로 두거나 필요 시 전체 마커 로드.
+  // 여기서는 일단 마커 클리어만 유지하고 사이드바의 인기모드 진입을 방해하지 않음.
 };
 
 const handleMarkAction = (placeId: string) => {
@@ -491,21 +491,21 @@ const toggleCategory = (code: number) => {
 
     // 다른 필터가 있는지 확인
     const hasOtherFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
-    
+
     if (!hasOtherFilters) {
-        // 다른 필터도 없으면 초기화 (검색창 X 버튼 효과)
-        handleResetRequest();
+      // 다른 필터도 없으면 초기화 (검색창 X 버튼 효과)
+      handleResetRequest();
     } else {
-        // 다른 필터가 있으면 지도 갱신
-        fetchMapMarkers();
-        showReSearchButton.value = false;
+      // 다른 필터가 있으면 지도 갱신
+      fetchMapMarkers();
+      showReSearchButton.value = false;
     }
 
   } else {
     // 선택 (또는 변경)
     selectedCategory.value = code;
     currentFilters.value.contenttype = code;
-    
+
     // 필터 적용 후 바로 검색
     isSearchMode.value = true;
     fetchMapMarkers();
@@ -514,130 +514,127 @@ const toggleCategory = (code: number) => {
 };
 
 onMounted(() => {
-  if (!(window as any).kakao || !(window as any).kakao.maps) {
-    console.error('Kakao Maps SDK not loaded!');
-    return;
-  }
+  // 1. 지도를 초기화하는 실제 로직을 함수로 분리
+  const initKakaoMap = () => {
+    const container = document.getElementById('map');
+    const initialLat = 37.5665;
+    const initialLng = 126.9780;
 
-  const container = document.getElementById('map');
-  const initialLat = 37.5665;
-  const initialLng = 126.9780;
+    const options = {
+      center: new (window as any).kakao.maps.LatLng(initialLat, initialLng),
+      level: 14
+    };
 
-  const options = {
-    center: new (window as any).kakao.maps.LatLng(initialLat, initialLng),
-    level: 14
-  };
+    try {
+      const map = new (window as any).kakao.maps.Map(container, options);
+      mapInstance.value = map; // Ref에 저장
+      console.log('Map initialized successfully');
 
-  try {
-    const map = new (window as any).kakao.maps.Map(container, options);
-    mapInstance.value = map; // Ref에 저장
-    console.log('Map initialized successfully');
-
-    // 지도 타일 로드 완료 시 초기 데이터 로드 (한 번만 실행)
-    const onTilesLoaded = () => {
+      // 지도 타일 로드 완료 시 초기 데이터 로드 (한 번만 실행)
+      const onTilesLoaded = () => {
         if (sideBarSearchTabRef.value) {
-            console.log('[Search] Initial map load complete. Fetching recommendations...');
+          console.log('[Search] Initial map load complete. Fetching recommendations...');
 
-            // 1. 쿼리 파라미터 확인 (다른 페이지에서 "지도 보기"로 넘어온 경우)
-            const { action, placeId, lat, lng, title } = route.query;
-            if (action === 'highlight' && placeId && lat && lng) {
-                console.log('[Search] Redirected with highlight action:', placeId);
-                
-                handleMapHighlight(String(placeId), {
-                    lat: Number(lat),
-                    lng: Number(lng),
-                    level: 3 // 상세 보기 줌 레벨
-                }, String(title || '')); // 제목 전달
+          const { action, placeId, lat, lng, title } = route.query;
+          if (action === 'highlight' && placeId && lat && lng) {
+            console.log('[Search] Redirected with highlight action:', placeId);
+            handleMapHighlight(String(placeId), {
+              lat: Number(lat),
+              lng: Number(lng),
+              level: 3
+            }, String(title || ''));
 
-                // 처리 후 쿼리 파라미터 제거 (URL 깔끔하게)
-                router.replace({ path: '/search', query: {} });
-
-                isLoading.value = false;
-            } else {
-                // 2. 일반 진입 시: 지도 마커만 로드하고 사이드바는 인기 여행지 모드 유지
-                fetchMapMarkers().finally(() => {
-                    isLoading.value = false;
-                });
-            }
-            
-            // 리스너 제거 (최초 1회만 실행)
-            (window as any).kakao.maps.event.removeListener(map, 'tilesloaded', onTilesLoaded);
+            router.replace({ path: '/search', query: {} });
+            isLoading.value = false;
+          } else {
+            fetchMapMarkers().finally(() => {
+              isLoading.value = false;
+            });
+          }
+          (window as any).kakao.maps.event.removeListener(map, 'tilesloaded', onTilesLoaded);
         }
-    };
+      };
 
-    (window as any).kakao.maps.event.addListener(map, 'tilesloaded', onTilesLoaded);
+      (window as any).kakao.maps.event.addListener(map, 'tilesloaded', onTilesLoaded);
 
-    map.setMinLevel(1);
-    map.setMaxLevel(13);
+      map.setMinLevel(1);
+      map.setMaxLevel(13);
 
-    // 줌/드래그 제한 로직
-    const wideBounds = new (window as any).kakao.maps.LatLngBounds(
-      new (window as any).kakao.maps.LatLng(32.0, 123.0),
-      new (window as any).kakao.maps.LatLng(43.0, 134.0)
-    );
-    const mediumBounds = new (window as any).kakao.maps.LatLngBounds(
-      new (window as any).kakao.maps.LatLng(33.5, 125.5),
-      new (window as any).kakao.maps.LatLng(42.0, 131.0)
-    );
-    const tightBounds = new (window as any).kakao.maps.LatLngBounds(
-      new (window as any).kakao.maps.LatLng(35.5, 127.0),
-      new (window as any).kakao.maps.LatLng(40.0, 128.5)
-    );
+      // --- 줌/드래그 제한 로직 시작 ---
+      const wideBounds = new (window as any).kakao.maps.LatLngBounds(
+        new (window as any).kakao.maps.LatLng(32.0, 123.0),
+        new (window as any).kakao.maps.LatLng(43.0, 134.0)
+      );
+      const mediumBounds = new (window as any).kakao.maps.LatLngBounds(
+        new (window as any).kakao.maps.LatLng(33.5, 125.5),
+        new (window as any).kakao.maps.LatLng(42.0, 131.0)
+      );
+      const tightBounds = new (window as any).kakao.maps.LatLngBounds(
+        new (window as any).kakao.maps.LatLng(35.5, 127.0),
+        new (window as any).kakao.maps.LatLng(40.0, 128.5)
+      );
 
-    const checkBounds = () => {
-      // 클러스터 이동 중일 때는 검사하지 않음
-      if (isPanningToCluster.value) return;
+      const checkBounds = () => {
+        if (isPanningToCluster.value) return;
+        const level = map.getLevel();
+        const center = map.getCenter();
+        let currentBounds;
+        if (level >= 13) currentBounds = tightBounds;
+        else if (level === 12) currentBounds = mediumBounds;
+        else currentBounds = wideBounds;
 
-      const level = map.getLevel();
-      const center = map.getCenter();
-      let currentBounds;
-      
-      if (level >= 13) currentBounds = tightBounds;
-      else if (level === 12) currentBounds = mediumBounds;
-      else currentBounds = wideBounds;
-      
-      if (!currentBounds.contain(center)) {
-        let lat = center.getLat();
-        let lng = center.getLng();
-        const sw = currentBounds.getSouthWest();
-        const ne = currentBounds.getNorthEast();
+        if (!currentBounds.contain(center)) {
+          let lat = center.getLat();
+          let lng = center.getLng();
+          const sw = currentBounds.getSouthWest();
+          const ne = currentBounds.getNorthEast();
+          if (lat < sw.getLat()) lat = sw.getLat();
+          if (lat > ne.getLat()) lat = ne.getLat();
+          if (lng < sw.getLng()) lng = sw.getLng();
+          if (lng > ne.getLng()) lng = ne.getLng();
+          map.setCenter(new (window as any).kakao.maps.LatLng(lat, lng));
+        }
+      };
 
-        if (lat < sw.getLat()) lat = sw.getLat();
-        if (lat > ne.getLat()) lat = ne.getLat();
-        if (lng < sw.getLng()) lng = sw.getLng();
-        if (lng > ne.getLng()) lng = ne.getLng();
-
-        map.setCenter(new (window as any).kakao.maps.LatLng(lat, lng));
-      }
-    };
-
-    (window as any).kakao.maps.event.addListener(map, 'zoom_changed', () => {
+      (window as any).kakao.maps.event.addListener(map, 'zoom_changed', () => {
         const level = map.getLevel();
         if (level < 1) map.setLevel(1);
         else if (level > 13) map.setLevel(13);
-        
-        // 조건(필터)이 설정되어 있는지 확인
         const hasActiveFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
-        
         if (hasActiveFilters) {
-             // 조건이 있으면 줌 변경 시 자동 API 호출
-             fetchMapMarkers();
-             showReSearchButton.value = false;
+          fetchMapMarkers();
+          showReSearchButton.value = false;
         } else {
-             // 조건이 없으면 기존 로직 (버튼 표시 등)
-             onMapInteract();
+          onMapInteract();
         }
-    });
+      });
 
-    (window as any).kakao.maps.event.addListener(map, 'center_changed', () => {
-        checkBounds();
-    });
+      (window as any).kakao.maps.event.addListener(map, 'center_changed', checkBounds);
+      (window as any).kakao.maps.event.addListener(map, 'dragend', onMapInteract);
+      // --- 줌/드래그 제한 로직 끝 ---
 
-    (window as any).kakao.maps.event.addListener(map, 'dragend', onMapInteract);
+    } catch (err) {
+      console.error('Error initializing map:', err);
+      isLoading.value = false;
+    }
+  };
 
-  } catch (err) {
-    console.error('Error initializing map:', err);
-    isLoading.value = false; // 에러 시에도 로딩 종료
+  // 2. [핵심] SDK 로드 상태에 따른 실행 분기
+  if ((window as any).kakao && (window as any).kakao.maps) {
+    // 이미 로드된 경우 (주로 로컬이나 두 번째 방문)
+    (window as any).kakao.maps.load(initKakaoMap);
+  } else {
+    // 로드되지 않은 경우 (배포 환경 첫 진입 시)
+    const script = document.querySelector(`script[src*="dapi.kakao.com"]`);
+    if (script) {
+      script.addEventListener('load', () => {
+        // 스크립트가 로드된 후 카카오맵 API가 준비될 때까지 기다림
+        (window as any).kakao.maps.load(initKakaoMap);
+      });
+    } else {
+      console.error('Kakao Maps script tag not found in index.html');
+      isLoading.value = false;
+    }
   }
 });
 </script>
@@ -646,15 +643,9 @@ onMounted(() => {
   <div class="search-page-layout">
     <SideBar @tab-change="handleTabChange">
       <template #search>
-        <SideBarSearchTab 
-            ref="sideBarSearchTabRef"
-            :selected-category="selectedCategory"
-            @map-highlight="handleMapHighlight"
-            @mark-action="handleMarkAction"
-            @state-change="handleSearchStateChange"
-            @search-request="handleSidebarSearchRequest"
-            @reset-request="handleResetRequest"
-        />
+        <SideBarSearchTab ref="sideBarSearchTabRef" :selected-category="selectedCategory"
+          @map-highlight="handleMapHighlight" @mark-action="handleMarkAction" @state-change="handleSearchStateChange"
+          @search-request="handleSidebarSearchRequest" @reset-request="handleResetRequest" />
       </template>
       <template #my>
         <SideBarMyTab ref="sideBarMyTabRef" />
@@ -663,7 +654,7 @@ onMounted(() => {
 
     <main class="main-content">
       <div id="map"></div>
-      
+
       <!-- 로딩 오버레이 -->
       <div v-if="isLoading" class="loading-overlay">
         <div class="spinner"></div>
@@ -672,13 +663,8 @@ onMounted(() => {
 
       <!-- 지도 상단 카테고리 토글 -->
       <div class="category-overlay">
-        <button 
-          v-for="type in contentTypes" 
-          :key="type.code"
-          class="category-btn"
-          :class="{ active: selectedCategory === type.code }"
-          @click="toggleCategory(type.code)"
-        >
+        <button v-for="type in contentTypes" :key="type.code" class="category-btn"
+          :class="{ active: selectedCategory === type.code }" @click="toggleCategory(type.code)">
           <span class="category-dot" :class="type.cssClass"></span>
           {{ type.name }}
         </button>
@@ -687,10 +673,10 @@ onMounted(() => {
       <!-- 현 지도에서 검색 버튼 -->
       <transition name="fade">
         <div v-if="showReSearchButton" class="re-search-overlay">
-            <button class="re-search-btn" @click="handleReSearchInMap">
-                <span class="re-search-icon">↻</span>
-                현 지도에서 검색
-            </button>
+          <button class="re-search-btn" @click="handleReSearchInMap">
+            <span class="re-search-icon">↻</span>
+            현 지도에서 검색
+          </button>
         </div>
       </transition>
 
@@ -700,11 +686,7 @@ onMounted(() => {
       </button>
 
       <!-- 챗봇 모달 -->
-      <ChatBotModal 
-        :isVisible="isChatBotOpen" 
-        @close="isChatBotOpen = false" 
-        @item-click="handleChatBotPlaceClick"
-      />
+      <ChatBotModal :isVisible="isChatBotOpen" @close="isChatBotOpen = false" @item-click="handleChatBotPlaceClick" />
 
     </main>
   </div>
@@ -724,7 +706,8 @@ onMounted(() => {
   border: none;
   box-shadow: 0 4px 15px rgba(110, 142, 251, 0.4);
   cursor: pointer;
-  z-index: 4000; /* 지도 컨트롤보다 위에, 로딩 오버레이보다는 아래 */
+  z-index: 4000;
+  /* 지도 컨트롤보다 위에, 로딩 오버레이보다는 아래 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -741,184 +724,200 @@ onMounted(() => {
 
 /* 로딩 오버레이 스타일 */
 .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.8);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 5000;
-    backdrop-filter: blur(4px);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+  backdrop-filter: blur(4px);
 }
 
 .loading-overlay p {
-    margin-top: 16px;
-    font-size: 16px;
-    color: #555;
-    font-weight: 600;
+  margin-top: 16px;
+  font-size: 16px;
+  color: #555;
+  font-weight: 600;
 }
 
 .spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #3498db;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 전역 스타일로 추가해야 Kakao Map 오버레이에 적용됨 */
 .cluster-overlay {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    /* width, height는 JS에서 동적으로 설정됨 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    pointer-events: auto;
-    z-index: 999;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  /* width, height는 JS에서 동적으로 설정됨 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
+  z-index: 999;
 }
 
 /* 호버 시 효과 */
 .cluster-overlay:hover {
-    transform: scale(1.1);
-    box-shadow: 0 12px 20px rgba(37, 99, 235, 0.5);
-    z-index: 1000;
+  transform: scale(1.1);
+  box-shadow: 0 12px 20px rgba(37, 99, 235, 0.5);
+  z-index: 1000;
 }
 
 .cluster-overlay:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4);
+  transform: scale(0.95);
+  box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4);
 }
 
 .cluster-count {
-    /* 중앙 정렬됨 */
+  /* 중앙 정렬됨 */
 }
 
 /* 단일 마커 커스텀 스타일 */
 .custom-marker-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    position: relative;
-    width: fit-content; /* 내용물에 딱 맞게 너비 조절 */
-    /* 텍스트가 겹치지 않게 z-index 관리 필요시 설정 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  width: fit-content;
+  /* 내용물에 딱 맞게 너비 조절 */
+  /* 텍스트가 겹치지 않게 z-index 관리 필요시 설정 */
 }
 
 .custom-marker-container:hover {
-    z-index: 1000; /* 호버 시 맨 앞으로 */
+  z-index: 1000;
+  /* 호버 시 맨 앞으로 */
 }
 
 .marker-icon {
-    width: 18px; /* 마커 크기 더 축소 */
-    height: auto; /* 비율 유지 */
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); /* 그림자 효과 조절 */
-    transition: transform 0.2s;
+  width: 18px;
+  /* 마커 크기 더 축소 */
+  height: auto;
+  /* 비율 유지 */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  /* 그림자 효과 조절 */
+  transition: transform 0.2s;
 }
 
 .custom-marker-container:hover .marker-icon {
-    transform: scale(1.2) translateY(-2px); /* 호버 시 약간 강조 */
+  transform: scale(1.2) translateY(-2px);
+  /* 호버 시 약간 강조 */
 }
 
 .marker-title {
-    margin-top: 4px;
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #333;
-    white-space: nowrap;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  margin-top: 4px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 겹친 마커 (Bundle) 스타일 */
 .bundle-marker-container {
-    position: relative;
-    cursor: pointer;
-    z-index: 3000; /* 일반 마커보다 위 */
+  position: relative;
+  cursor: pointer;
+  z-index: 3000;
+  /* 일반 마커보다 위 */
 }
 
 .bundle-badge {
-    background: #EA4335; /* 빨간색으로 통일 */
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 13px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-    border: 2px solid white;
-    transition: transform 0.2s;
+  background: #EA4335;
+  /* 빨간색으로 통일 */
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 13px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid white;
+  transition: transform 0.2s;
 }
 
 .bundle-badge:hover {
-    transform: scale(1.1);
-    background: #d33426;
+  transform: scale(1.1);
+  background: #d33426;
 }
 
 .bundle-list {
-    position: absolute;
-    bottom: 40px; /* 마커 위에 표시 */
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    min-width: 160px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 4000; /* 리스트는 무조건 최상위 */
-    padding: 0;
-    /* 스크롤바 스타일링 (선택사항) */
-    scrollbar-width: thin;
+  position: absolute;
+  bottom: 40px;
+  /* 마커 위에 표시 */
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  min-width: 160px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 4000;
+  /* 리스트는 무조건 최상위 */
+  padding: 0;
+  /* 스크롤바 스타일링 (선택사항) */
+  scrollbar-width: thin;
 }
 
 .bundle-item {
-    padding: 10px 12px;
-    font-size: 13px;
-    color: #333;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    transition: background-color 0.1s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bundle-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .bundle-item:hover {
-    background-color: #f5f5f5;
-    color: #EA4335; /* 호버 색상도 빨간색으로 */
-    font-weight: 600;
+  background-color: #f5f5f5;
+  color: #EA4335;
+  /* 호버 색상도 빨간색으로 */
+  font-weight: 600;
 }
 </style>
 
@@ -927,21 +926,22 @@ onMounted(() => {
 
 .search-page-layout {
   display: flex;
-  height: calc(100vh - 58px); /* 헤더 높이(약 58px) 제외한 전체 높이 */
+  height: calc(100vh - 58px);
+  /* 헤더 높이(약 58px) 제외한 전체 높이 */
   width: 100%;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .main-content {
   flex-grow: 1;
   background-color: var(--color-gray-lightest, #f8f8f8);
   position: relative;
-  height: 100%; 
+  height: 100%;
 }
 
 #map {
   width: 100%;
-  height: 100%; 
+  height: 100%;
 }
 
 /* 카테고리 오버레이 스타일 */
@@ -969,7 +969,7 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
 }
 
@@ -981,68 +981,95 @@ onMounted(() => {
 }
 
 /* 각 카테고리별 색상 매핑 */
-.category-dot.ATTRACTION { background-color: var(--category-tag-bg-ATTRACTION); }
-.category-dot.CULTURE { background-color: var(--category-tag-bg-CULTURE); }
-.category-dot.FESTIVAL { background-color: var(--category-tag-bg-FESTIVAL); }
-.category-dot.COURSE { background-color: var(--category-tag-bg-COURSE); }
-.category-dot.LEPORTS { background-color: var(--category-tag-bg-LEPORTS); }
-.category-dot.LODGE { background-color: var(--category-tag-bg-LODGE); }
-.category-dot.SHOPPING { background-color: var(--category-tag-bg-SHOPPING); }
-.category-dot.FOOD { background-color: var(--category-tag-bg-FOOD); }
-.category-dot.CAFE { background-color: var(--category-tag-bg-CAFE); }
+.category-dot.ATTRACTION {
+  background-color: var(--category-tag-bg-ATTRACTION);
+}
+
+.category-dot.CULTURE {
+  background-color: var(--category-tag-bg-CULTURE);
+}
+
+.category-dot.FESTIVAL {
+  background-color: var(--category-tag-bg-FESTIVAL);
+}
+
+.category-dot.COURSE {
+  background-color: var(--category-tag-bg-COURSE);
+}
+
+.category-dot.LEPORTS {
+  background-color: var(--category-tag-bg-LEPORTS);
+}
+
+.category-dot.LODGE {
+  background-color: var(--category-tag-bg-LODGE);
+}
+
+.category-dot.SHOPPING {
+  background-color: var(--category-tag-bg-SHOPPING);
+}
+
+.category-dot.FOOD {
+  background-color: var(--category-tag-bg-FOOD);
+}
+
+.category-dot.CAFE {
+  background-color: var(--category-tag-bg-CAFE);
+}
 
 .category-btn:hover {
   background-color: #f9f9f9;
 }
 
 .category-btn.active {
-  background-color: #333; 
+  background-color: #333;
   color: var(--color-white);
   border-color: #333;
 }
 
 .category-btn.active .category-dot {
-  box-shadow: 0 0 2px rgba(255,255,255,0.5);
+  box-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 /* 현 지도 검색 버튼 스타일 */
 .re-search-overlay {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
 }
 
 .re-search-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background-color: var(--color-white, #fff);
-    color: var(--color-primary, #3498db); /* Primary Color 추정 */
-    border: 1px solid #ddd;
-    border-radius: 25px;
-    font-size: 14px;
-    font-weight: 700;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: var(--color-white, #fff);
+  color: var(--color-primary, #3498db);
+  /* Primary Color 추정 */
+  border: 1px solid #ddd;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .re-search-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 10px rgba(0,0,0,0.15);
-    background-color: #fcfcfc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+  background-color: #fcfcfc;
 }
 
 .re-search-btn:active {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
 .re-search-icon {
-    font-size: 16px;
-    line-height: 1;
+  font-size: 16px;
+  line-height: 1;
 }
 
 /* 트랜지션 효과 */
