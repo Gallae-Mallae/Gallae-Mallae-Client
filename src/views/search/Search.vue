@@ -135,7 +135,18 @@ const drawMarkers = (data: MapAttractionResponse[]) => {
     serverClusters.forEach(item => {
         const position = new (window as any).kakao.maps.LatLng(item.latitude, item.longitude);
         const content = document.createElement('div');
+        
+        // 클러스터 크기 계산 (로그 스케일 적용)
+        // 기본 30px, count가 커질수록 커짐. max 제한 (예: 70px)
+        const baseSize = 30;
+        const maxSize = 70;
+        const logCount = Math.log10(item.count);
+        let size = baseSize + (logCount * 10); 
+        if (size > maxSize) size = maxSize;
+
         content.className = 'cluster-overlay';
+        content.style.width = `${size}px`;
+        content.style.height = `${size}px`;
         content.innerHTML = `<div class="cluster-count">${item.count}</div>`;
 
         content.addEventListener('click', (e) => {
@@ -474,9 +485,31 @@ const handleMarkAction = (placeId: string) => {
 // 카테고리 토글 함수
 const toggleCategory = (code: number) => {
   if (selectedCategory.value === code) {
+    // 선택 해제
     selectedCategory.value = null;
+    currentFilters.value.contenttype = undefined;
+
+    // 다른 필터가 있는지 확인
+    const hasOtherFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
+    
+    if (!hasOtherFilters) {
+        // 다른 필터도 없으면 초기화 (검색창 X 버튼 효과)
+        handleResetRequest();
+    } else {
+        // 다른 필터가 있으면 지도 갱신
+        fetchMapMarkers();
+        showReSearchButton.value = false;
+    }
+
   } else {
+    // 선택 (또는 변경)
     selectedCategory.value = code;
+    currentFilters.value.contenttype = code;
+    
+    // 필터 적용 후 바로 검색
+    isSearchMode.value = true;
+    fetchMapMarkers();
+    showReSearchButton.value = false;
   }
 };
 
@@ -583,7 +616,17 @@ onMounted(() => {
         if (level < 1) map.setLevel(1);
         else if (level > 13) map.setLevel(13);
         
-        onMapInteract();
+        // 조건(필터)이 설정되어 있는지 확인
+        const hasActiveFilters = Object.values(currentFilters.value).some(val => val !== undefined && val !== 0 && val !== '');
+        
+        if (hasActiveFilters) {
+             // 조건이 있으면 줌 변경 시 자동 API 호출
+             fetchMapMarkers();
+             showReSearchButton.value = false;
+        } else {
+             // 조건이 없으면 기존 로직 (버튼 표시 등)
+             onMapInteract();
+        }
     });
 
     (window as any).kakao.maps.event.addListener(map, 'center_changed', () => {
@@ -735,31 +778,27 @@ onMounted(() => {
 
 /* 전역 스타일로 추가해야 Kakao Map 오버레이에 적용됨 */
 .cluster-overlay {
-    background: #fff;
-    border: 3px solid #3b82f6; /* 파란색 테두리 */
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: 2px solid #ffffff;
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
+    /* width, height는 JS에서 동적으로 설정됨 */
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
-    color: #3b82f6;
-    font-weight: 800;
-    font-size: 14px; /* 폰트는 살짝 줄여서 긴 숫자 대비 */
+    box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: auto;
     z-index: 999;
-    position: relative; /* pseudo-element 위치 기준 */
 }
 
 /* 호버 시 효과 */
 .cluster-overlay:hover {
-    background: #3b82f6;
-    color: #fff;
-    transform: scale(1.1) translateY(-2px); /* 살짝 커지면서 위로 */
-    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.5);
+    transform: scale(1.1);
+    box-shadow: 0 12px 20px rgba(37, 99, 235, 0.5);
     z-index: 1000;
 }
 
