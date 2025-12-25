@@ -72,13 +72,13 @@ export const useAuthStore = defineStore("auth", {
       } finally {
         // 3. 카카오 로그아웃 페이지로 이동 (백엔드 제공 URL)
         const clientId = "c1377f1229acf88874ea15f41927d3b9";
-        const isProd = window.location.hostname === "gallaemallae.site";
-        const redirectUri = isProd
-          ? "https://gallaemallae.site/oauth2/redirect"
-          : "http://localhost:5173/oauth2/redirect";
+        const host = window.location.origin;
+        const redirectUri = `${host}/oauth2/redirect`;
 
         const kakaoLogoutUrl = `https://kauth.kakao.com/oauth/logout?client_id=${clientId}&logout_redirect_uri=${redirectUri}`;
 
+        // 3. 로컬 상태 초기화 후 카카오 로그아웃 페이지로 이동
+        this.clearLocalAuth();
         window.location.href = kakaoLogoutUrl;
       }
     },
