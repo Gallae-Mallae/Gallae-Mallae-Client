@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 import type { UserDTO } from "@/types/user";
 import { useLikeStore } from "./like";
-import { fetchUser } from "@/api/auth";
+import { fetchUser, logoutUser } from "@/api/auth";
 
 interface AuthState {
   isAuthenticated: boolean;
   user: UserDTO | null;
   // test2의 명확한 네이밍 채택
-  isInitialLoading: boolean; 
+  isInitialLoading: boolean;
 }
 
 export const useAuthStore = defineStore("auth", {
@@ -21,7 +21,7 @@ export const useAuthStore = defineStore("auth", {
     isLoggedIn: (state) => state.isAuthenticated,
     currentUser: (state) => state.user,
     // test2의 게터 이름 사용
-    isCheckingAuth: (state) => state.isInitialLoading, 
+    isCheckingAuth: (state) => state.isInitialLoading,
   },
 
   actions: {
@@ -44,29 +44,50 @@ export const useAuthStore = defineStore("auth", {
     // [feature/#16 기능 살림] 새로고침 시 세션 복구 로직
     // 변수명은 test2의 isInitialLoading으로 변경하여 통합
     async checkLogin() {
-        this.isInitialLoading = true;
-        try {
-            const user = await fetchUser();
-            if (user) {
-                // setUser를 호출하면 좋아요 목록까지 자동으로 불러옵니다
-                this.setUser(user);
-                console.log("[AuthStore] 로그인 세션 복구 완료:", user.name);
-            }
-        } catch (error) {
-            console.log("[AuthStore] 유효한 세션이 없거나 만료되었습니다.");
-            this.logout();
-        } finally {
-            this.isInitialLoading = false;
+      this.isInitialLoading = true;
+      try {
+        const user = await fetchUser();
+        if (user) {
+          // setUser를 호출하면 좋아요 목록까지 자동으로 불러옵니다
+          this.setUser(user);
+          console.log("[AuthStore] 로그인 세션 복구 완료:", user.name);
         }
+      } catch (error) {
+        console.log("[AuthStore] 유효한 세션이 없거나 만료되었습니다.");
+        this.clearLocalAuth();
+      } finally {
+        this.isInitialLoading = false;
+      }
     },
 
-    // 로그아웃
-    logout() {
+    /**
+     * 전체 로그아웃 프로세스 (서버 API 호출 -> 카카오 리다이렉트)
+     */
+    async handleLogout() {
+      try {
+        // 1. 서버 측 로그아웃 처리 (JWT 쿠키 등 무효화)
+        await logoutUser();
+      } catch (error) {
+        console.error("[AuthStore] 서버 로그아웃 실패:", error);
+      } finally {
+        // 3. 카카오 로그아웃 페이지로 이동 (백엔드 제공 URL)
+        const clientId = "c1377f1229acf88874ea15f41927d3b9";
+        const isProd = window.location.hostname === "gallaemallae.site";
+        const redirectUri = isProd
+          ? "https://gallaemallae.site/oauth2/redirect"
+          : "http://localhost:5173/oauth2/redirect";
+
+        const kakaoLogoutUrl = `https://kauth.kakao.com/oauth/logout?client_id=${clientId}&logout_redirect_uri=${redirectUri}`;
+
+        window.location.href = kakaoLogoutUrl;
+      }
+    },
+
+    clearLocalAuth() {
       this.user = null;
       this.isAuthenticated = false;
       this.isInitialLoading = false;
 
-      // [feature/#16 기능 살림] 로그아웃 시 좋아요 목록 메모리 초기화
       const likeStore = useLikeStore();
       likeStore.clearLikes();
     },

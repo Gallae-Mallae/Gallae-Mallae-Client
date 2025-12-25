@@ -35,7 +35,7 @@ const handleCardClick = () => {
 };
 
 const handleDelete = () => {
-    if (confirm(`'${props.item.title}' 링크를 삭제하겠습니까?`)) {
+    if (confirm(`링크를 삭제하시겠습니까?`)) {
         emit('delete', props.item.scrapId);
     }
 };

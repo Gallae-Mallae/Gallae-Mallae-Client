@@ -53,7 +53,7 @@ export const useScrapStore = defineStore("scrap", () => {
   // 폴더 삭제
   const removeFolder = async (folderId: number) => {
     try {
-      if (!confirm("정말로 이 폴더를 삭제하시겠습니까?")) return;
+      if (!confirm("폴더를 삭제하시겠습니까?")) return;
 
       await deleteScrapFolder(folderId);
       await loadFolders(); // 삭제 후 목록 갱신

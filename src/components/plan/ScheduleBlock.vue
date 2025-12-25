@@ -1,10 +1,10 @@
 <template>
-    <div class="schedule-block" :class="{ 'is-active': isMemoModalOpen }" :style="blockStyle" :draggable="isDraggable"
-        @dragstart="handleDragStart">
+    <div class="schedule-block" :class="{ 'is-active': isMemoModalOpen, 'has-memos': hasMemos }" :style="blockStyle"
+        :draggable="isDraggable" @dragstart="handleDragStart">
 
         <div class="block-content" @click="$emit('click', item)">
             <div class="memo-icon-container" @click.stop="planStore.toggleMemo(item.blockId)">
-                <div class="white-circle">
+                <div class="white-circle" :class="{ 'filled-yellow': hasMemos }">
                     <img src="@/assets/icons/ic_memo.png" alt="메모" />
                 </div>
             </div>
@@ -42,6 +42,7 @@ import { timeToMinutes } from '@/utils/time';
 
 const planStore = usePlanStore();
 const isMemoModalOpen = computed(() => planStore.activeMemoId === props.item.blockId);
+const hasMemos = computed(() => props.item.memos && props.item.memos.length > 0);
 
 const emit = defineEmits(['click', 'remove']);
 
@@ -238,6 +239,11 @@ const handleDragStart = (e: DragEvent) => {
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
+}
+
+.filled-yellow {
+    background-color: #FFD700 !important;
 }
 
 .white-circle img {

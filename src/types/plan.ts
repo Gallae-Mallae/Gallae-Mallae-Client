@@ -6,7 +6,7 @@ export interface PlanCardDTO {
   startDate: string;
   endDate: string;
   planImageUrl: string;
-  isShared: boolean;
+  isShared: number;
   participants: PlanMemberDTO[];
 }
 

@@ -1,12 +1,12 @@
 <template>
-    <div class="oauth-redirect-container">
-        <p v-if="isLoading">사용자 정보를 확인하고 있습니다.</p>
-        <p v-else-if="error">로그인 인증에 실패했습니다. 메인 페이지로 돌아갑니다.</p>
+<div class="oauth-redirect-container">
+        <div v-if="isLoading" class="loading-overlay">
+            <!-- <p>인증 처리 중</p> -->
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { fetchUser } from '@/api/auth';
@@ -15,24 +15,26 @@ import { useAuthStore } from '@/stores/auth';
 const router = useRouter();
 const authStore = useAuthStore();
 const isLoading = ref(true);
-const error = ref(false)
+const error = ref(false);
 
 onMounted(async () => {
+    // 1. 이미 로그인된 상태에서 리다이렉트 페이지에 왔다면 로그아웃 복귀로 판단
+    if (authStore.isAuthenticated) {
+        authStore.clearLocalAuth();
+        router.replace('/');
+        return;
+    }
+
+    // 2. 로그인 처리 로직
     try {
-        // 토큰 쿠키를 사용해 사용자 정보 조회
         const user = await fetchUser();
-        // 인증 성공 시, Store에 사용자 정보 저장
         authStore.setUser(user);
         router.replace('/');
-
     } catch (e) {
         error.value = true;
-        console.error("인증 검증 실패:", e);
-
         setTimeout(() => {
             router.replace('/');
         }, 2000);
-
     } finally {
         isLoading.value = false;
     }
@@ -41,17 +43,23 @@ onMounted(async () => {
 
 <style scoped>
 .oauth-redirect-container {
+    width: 100%;
+    height: 100vh;
+    background-image: url('@/assets/images/home.png'); 
+    background-size: cover;
+    background-position: center;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
-    text-align: center;
-    font-family: Arial, sans-serif;
-    background-color: #f8f8f8;
 }
 
-p {
-    color: #555;
+.loading-overlay {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 20px 40px;
+    border-radius: 8px;
 }
+
+/* p {
+    color: #555;
+} */
 </style>

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
+import type { PlanDTO, MemoDTO } from "@/types/plan";
 import { timeToMinutes, minutesToTimeString } from "@/utils/time";
 import { fetchPlanById, fetchDailySchedules } from "@/api/plan";
 import {
@@ -11,16 +11,14 @@ import {
 } from "@/api/schedule";
 
 import { createMemo, deleteMemo, fetchMemos } from "@/api/memo";
-import type {
-  MemoRequest,
-  CreateMemoResponse,
-  MemoCreatedSocketData,
-  MemoDeletedSocketData,
-} from "@/api/memo";
+import type { MemoRequest } from "@/api/memo";
+
+import { updatePlan, deletePlan } from "@/api/plan";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
   const activeMemoId = ref<number | null>(null);
+  const allPlans = ref<PlanDTO[]>([]);
   const isLoading = ref(false);
 
   // 초기 데이터 설정 (PlanTimetable의 onMounted에서 호출)
@@ -46,25 +44,57 @@ export const usePlanStore = defineStore("plan", () => {
     const { event, data } = payload;
 
     switch (event) {
-      case "BLOCK_CREATED":
-        await refreshDayData(data.day);
-        console.log("일정 생성 발생:", data);
+      case "BLOCK_CREATED": {
+        // 💡 API 재조회 없이 데이터 직접 가공
+        const newBlock = formatBlockData(data);
+        const targetDay = planData.value.dailySchedules.find(
+          (d) => d.dayNumber === data.day
+        );
+        if (targetDay) {
+          // 중복 방지 (낙천적 업데이트와 겹칠 수 있음)
+          targetDay.items = targetDay.items.filter(
+            (i) => i.blockId !== data.blockId && !i.isTemp
+          );
+          targetDay.items.push(newBlock);
+          targetDay.items.sort(
+            (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+          );
+        }
         break;
+      }
 
-      case "BLOCK_MOVED":
-        await refreshDayData(data.day);
-        console.log("일정 이동 발생:", data);
+      case "BLOCK_MOVED": {
+        // 💡 이전 날짜에서 제거 후 새 날짜에 즉시 추가
+        removeItemLocal(data.blockId); // 기존 함수 재활용
+        const movedBlock = formatBlockData(data);
+        const targetDay = planData.value.dailySchedules.find(
+          (d) => d.dayNumber === data.day
+        );
+        if (targetDay) {
+          targetDay.items.push(movedBlock);
+          targetDay.items.sort(
+            (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+          );
+        }
         break;
+      }
 
-      case "BLOCK_DELETED":
-        await refreshDayData(data.day);
-        console.log("일정 삭제 발생:", data);
+      case "BLOCK_DELETED": {
+        // 💡 즉시 로컬에서 제거
+        removeItemLocal(Number(data));
         break;
+      }
 
-      case "BLOCK_RESIZED":
-        await refreshDayData(data.day);
-        console.log("일정 리사이징 발생:", data);
+      case "BLOCK_RESIZED": {
+        // 💡 해당 블록만 찾아 시간 정보 업데이트
+        const item = findItemInAllDays(data.blockId);
+        if (item) {
+          item.endTime = data.newEndTime.substring(0, 5);
+          item.durationTime =
+            timeToMinutes(item.endTime) - timeToMinutes(item.startTime);
+        }
         break;
+      }
 
       case "MEMO_CREATED": {
         const targetDay = planData.value.dailySchedules.find((d) =>
@@ -84,6 +114,47 @@ export const usePlanStore = defineStore("plan", () => {
         if (targetDay) {
           await refreshDayData(targetDay.dayNumber);
         }
+        break;
+      }
+
+      // 💡 여행 계획 수정 이벤트 처리
+      case "PLAN_UPDATED": {
+        // 현재 보고 있는 플랜이 수정된 경우 데이터 동기화
+        if (Number(planData.value.id) === Number(data.planId)) {
+          planData.value = {
+            ...planData.value,
+            title: data.title,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            planImageUrl: data.planImageUrl,
+          };
+        }
+        // 목록(allPlans)에서도 해당 플랜을 찾아 업데이트
+        const planInList = allPlans.value.find(
+          (p) => Number(p.id) === Number(data.planId)
+        );
+        if (planInList) {
+          planInList.title = data.title;
+          planInList.startDate = data.startDate;
+          planInList.endDate = data.endDate;
+          planInList.planImageUrl = data.planImageUrl;
+        }
+        console.log("여행 계획 수정 발생:", data);
+        break;
+      }
+
+      // 💡 여행 계획 삭제 이벤트 처리
+      case "PLAN_DELETED": {
+        // 현재 보고 있는 플랜이 삭제된 경우 처리 (예: 홈으로 이동은 컴포넌트에서 판단)
+        if (Number(planData.value.id) === Number(data)) {
+          console.log("현재 보고 있는 플랜이 삭제되었습니다.");
+          planData.value = null;
+        }
+        // 목록에서 제거
+        allPlans.value = allPlans.value.filter(
+          (p) => Number(p.id) !== Number(data)
+        );
+        console.log("여행 계획 삭제 발생. 삭제된 ID:", data);
         break;
       }
     }
@@ -451,10 +522,68 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
+  /* 💡 여행 계획 수정 요청 */
+  const requestUpdatePlan = async (
+    planId: number,
+    payload: { title: string; startDate: string; endDate: string }
+  ) => {
+    try {
+      await updatePlan(planId, payload);
+      console.log("플랜 수정 요청 성공");
+    } catch (error) {
+      console.error("플랜 수정 요청 실패", error);
+    }
+  };
+
+  /* 💡 여행 계획 삭제 요청 */
+  const requestDeletePlan = async (planId: number) => {
+    try {
+      await deletePlan(planId);
+      console.log("플랜 삭제 요청 성공");
+    } catch (error) {
+      console.error("플랜 삭제 요청 실패", error);
+    }
+  };
+
+  // 헬퍼 함수 1: 서버 데이터를 프론트 포맷으로 변환 (기존 refreshDayData 로직 재사용)
+  const formatBlockData = (block: any) => {
+    const minedType =
+      (block.attraction as any)?.contentTypeId || block.categoryCode;
+    return {
+      ...block,
+      categoryCode: minedType ? Number(minedType) : 0,
+      startTime: block.startTime.substring(0, 5),
+      endTime: block.endTime.substring(0, 5),
+      durationTime:
+        timeToMinutes(block.endTime) - timeToMinutes(block.startTime),
+      attraction: block.attraction
+        ? { ...block.attraction, id: String(block.attraction.attractionId) }
+        : null,
+      memos:
+        block.memos?.map((m: any) => ({
+          id: String(m.memoId),
+          type: m.type,
+          content: m.content,
+          displayText: m.content,
+        })) || [],
+    };
+  };
+
+  // 헬퍼 함수 2: 모든 날짜를 뒤져서 특정 아이템 찾기
+  const findItemInAllDays = (blockId: number) => {
+    for (const day of planData.value!.dailySchedules) {
+      const item = day.items.find((i) => Number(i.blockId) === Number(blockId));
+      if (item) return item;
+    }
+    return null;
+  };
+
   return {
     planData,
     activeMemoId,
+    allPlans,
     isLoading,
+
     loadPlan,
     setPlanData,
     handleSocketEvent,
@@ -474,5 +603,8 @@ export const usePlanStore = defineStore("plan", () => {
     requestAddMemo,
     requestDeleteMemo,
     fetchAndSyncMemos,
+
+    requestUpdatePlan,
+    requestDeletePlan,
   };
 });
