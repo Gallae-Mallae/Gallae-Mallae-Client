@@ -13,8 +13,8 @@
       </div>
 
       <div class="items-container">
-        <ScheduleBlock v-for="item in scheduleItems" :key="item.blockId" :day-number="item.day" :item="item"
-          :unit-height="80" @remove="handleRemoveItem" />
+        <ScheduleBlock v-for="item in enrichedScheduleItems" :key="item.blockId" :day-number="item.day" :item="item"
+          :unit-height="80" :max-duration="item.maxDuration" @remove="handleRemoveItem" />
       </div>
     </div>
   </div>
@@ -25,7 +25,7 @@ import { computed } from 'vue';
 import { usePlanStore } from '@/stores/plan';
 import type { DailyScheduleDTO, ScheduleItemDTO, PlaceItemDTO } from '@/types/plan';
 import ScheduleBlock from '@/components/plan/ScheduleBlock.vue';
-import { minutesToTimeString } from '@/utils/time';
+import { minutesToTimeString, timeToMinutes } from '@/utils/time';
 
 const props = defineProps<{ data: DailyScheduleDTO }>();
 const planStore = usePlanStore();
@@ -38,15 +38,34 @@ const formatDate = (dateStr: string) => {
   return dateStr.split('-').slice(1).join('/');
 };
 
-const scheduleItems = computed(() => {
-  // 스토어의 planData가 바뀔 때마다 자동으로 재실행
+const enrichedScheduleItems = computed(() => {
   if (!planStore.planData) return [];
 
   const currentDay = planStore.planData.dailySchedules.find(
     (d) => d.dayNumber === props.data.dayNumber
   );
 
-  return currentDay ? [...currentDay.items] : [];
+  const items = currentDay ? [...currentDay.items] : [];
+
+  return items.map((item, index) => {
+    const nextItem = items[index + 1];
+    let maxDuration = 25 * 60; // 25시(익일 01시)까지 허용
+
+    if (nextItem) {
+      const currentStart = timeToMinutes(item.startTime);
+      const nextStart = timeToMinutes(nextItem.startTime);
+      maxDuration = nextStart - currentStart;
+    } else {
+      // 다음 아이템이 없으면 그리드 끝(25시)까지
+      const currentStart = timeToMinutes(item.startTime);
+      maxDuration = (25 * 60) - currentStart;
+    }
+
+    return {
+      ...item,
+      maxDuration
+    };
+  });
 });
 
 const handleDrop = (event: DragEvent) => {
@@ -73,6 +92,40 @@ const handleDrop = (event: DragEvent) => {
   const rawJson = event.dataTransfer.getData('application/json');
   const rawPlace = event.dataTransfer.getData('PLACE');
   const rawMemo = event.dataTransfer.getData('MEMO');
+
+  // --- [충돌 감지 로직 시작] ---
+  let itemDuration = 60; // 신규 아이템 기본 60분
+  let movingBlockId: number | null = null;
+
+  if (rawJson) {
+    try {
+      const dragData = JSON.parse(rawJson);
+      if (dragData.type === 'MOVE_ITEM') {
+        itemDuration = dragData.duration || 60;
+        movingBlockId = dragData.blockId;
+      }
+    } catch (e) { /* JSON 파싱 에러 무시 */ }
+  }
+
+  const targetStartMin = newStartTime;
+  const targetEndMin = targetStartMin + itemDuration;
+
+  // 겹치는지 확인
+  const hasOverlap = enrichedScheduleItems.value.some(item => {
+    // 이동 중인 자기 자신은 제외
+    if (movingBlockId && String(item.blockId) === String(movingBlockId)) return false;
+
+    const itemStart = timeToMinutes(item.startTime);
+    const itemEnd = timeToMinutes(item.endTime);
+
+    // 두 구간 (StartA, EndA)와 (StartB, EndB)가 겹치는지: StartA < EndB && EndA > StartB
+    return itemStart < targetEndMin && itemEnd > targetStartMin;
+  });
+
+  if (hasOverlap) {
+    return;
+  }
+  // --- [충돌 감지 로직 끝] ---
 
   // 1. 기존 일정 이동
   if (rawJson) {

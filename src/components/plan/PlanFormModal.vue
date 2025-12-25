@@ -14,7 +14,7 @@
                 <div class="date-inputs">
                     <input type="date" v-model="formStartDate" />
                     <span>{{ strings.PLAN_DASH }}</span>
-                    <input type="date" v-model="formEndDate" />
+                    <input type="date" v-model="formEndDate" :min="formStartDate" />
                 </div>
             </div>
         </div>
@@ -74,7 +74,20 @@ watch(() => props.initialPlan, (newPlan) => {
 }, { immediate: true });
 
 const handleSubmit = () => {
-    // TODO: 유효성 검사 로직 추가
+    if (!formTitle.value.trim()) {
+        alert("여행 제목을 입력해주세요.");
+        return;
+    }
+    if (!formStartDate.value || !formEndDate.value) {
+        alert("여행 기간을 설정해주세요.");
+        return;
+    }
+
+    // 날짜 비교 로직 (끝 날짜가 시작 날짜보다 빠르면 안됨)
+    if (new Date(formStartDate.value) > new Date(formEndDate.value)) {
+        alert("종료 날짜는 시작 날짜보다 빠를 수 없습니다.");
+        return;
+    }
 
     const payload = {
         title: formTitle.value,

@@ -50,6 +50,7 @@ const props = defineProps<{
     item: ScheduleItemDTO;
     unitHeight: number; // 1시간당 높이
     dayNumber: number;
+    maxDuration?: number;
 }>();
 
 const handleClickOutside = (e: MouseEvent) => {
@@ -75,7 +76,12 @@ const blockStyle = computed(() => {
 
     // 문자열 시간을 숫자로 변환
     const startMinutes = timeToMinutes(props.item.startTime);
-    const endMinutes = timeToMinutes(props.item.endTime);
+    let endMinutes = timeToMinutes(props.item.endTime);
+    
+    // 자정을 넘가는 경우 처리 (예: 23:30 ~ 00:30)
+    if (endMinutes < startMinutes) {
+        endMinutes += 1440;
+    }
 
     // 9시 기준으로 시작 위치 계산
     const START_TIME_OFFSET = 9 * 60;
@@ -107,7 +113,12 @@ const startDuration = ref(0);
 const initResize = (e: MouseEvent) => {
     isResizing.value = true;
     startY.value = e.clientY;
-    startDuration.value = timeToMinutes(props.item.endTime) - timeToMinutes(props.item.startTime);
+    
+    const start = timeToMinutes(props.item.startTime);
+    let end = timeToMinutes(props.item.endTime);
+    if (end < start) end += 1440;
+    
+    startDuration.value = end - start;
 
     window.addEventListener('mousemove', handleResize);
     window.addEventListener('mouseup', stopResize);
@@ -121,6 +132,10 @@ const handleResize = (e: MouseEvent) => {
 
     let newDuration = Math.max(30, startDuration.value + deltaMinutes);
     newDuration = Math.round(newDuration / 30) * 30;
+
+    if (props.maxDuration) {
+        newDuration = Math.min(newDuration, props.maxDuration);
+    }
 
     planStore.updateItemDuration(props.item.day, props.item.blockId, newDuration);
 };
@@ -159,11 +174,16 @@ const handleDragStart = (e: DragEvent) => {
         e.dataTransfer.setDragImage(e.currentTarget as HTMLElement, 10, 10);
         e.dataTransfer.effectAllowed = 'move';
     }
+    
+    const start = timeToMinutes(props.item.startTime);
+    let end = timeToMinutes(props.item.endTime);
+    if (end < start) end += 1440;
 
     const dragData = {
         type: 'MOVE_ITEM',
         blockId: props.item.blockId,
-        fromDay: props.item.day
+        fromDay: props.item.day,
+        duration: end - start
     };
 
     e.dataTransfer?.setData('application/json', JSON.stringify(dragData));
