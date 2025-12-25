@@ -7,7 +7,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { joinPlanByCode } from '@/api/plan';
+// import { joinPlanByCode } from '@/api/plan';
 
 const route = useRoute();
 const router = useRouter();
@@ -20,18 +20,18 @@ onMounted(async () => {
     return;
   }
 
-  try {
-    const response = await joinPlanByCode(code);
+  // try {
+  //   const response = await joinPlanByCode(code);
     
-    if (response && response.planId) {
-      router.replace(`/plan/${response.planId}`);
-    } else {
-      router.replace('/');
-    }
-  } catch (error) {
-    alert("유효하지 않은 초대 코드이거나 입장에 실패했습니다.");
-    router.replace('/');
-  }
+  //   if (response && response.planId) {
+  //     router.replace(`/plan/${response.planId}`);
+  //   } else {
+  //     router.replace('/');
+  //   }
+  // } catch (error) {
+  //   alert("유효하지 않은 초대 코드이거나 입장에 실패했습니다.");
+  //   router.replace('/');
+  // }
 });
 </script>
 

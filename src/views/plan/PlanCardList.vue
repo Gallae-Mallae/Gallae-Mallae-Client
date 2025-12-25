@@ -65,14 +65,17 @@ onMounted(() => {
 
 // 탭 선택에 따른 필터링
 const filteredPlans = computed(() => {
-    if (currentPlanType.value === 'ALL') {
-        return plans.value;
-    } else if (currentPlanType.value === 'PERSONAL') {
-        // 참여자가 1명 이하이면 개인 일정으로 간주
-        return plans.value.filter(p => p.participantIds?.length <= 1);
-    } else if (currentPlanType.value === 'SHARED') {
-        // 참여자가 2명 이상이면 공유 일정으로 간주
-        return plans.value.filter(p => p.participantIds?.length > 1);
+    const all = plans.value;
+    if (currentPlanType.value === 'ALL') return all;
+
+    if (currentPlanType.value === 'PERSONAL') {
+        // 서버 DTO: isShared가 1이면 개인
+        return all.filter(p => Number(p.isShared) === 1);
+    }
+
+    if (currentPlanType.value === 'SHARED') {
+        // 서버 DTO: isShared가 2 이상이면 공유
+        return all.filter(p => Number(p.isShared) >= 2);
     }
     return [];
 });
@@ -143,7 +146,26 @@ const handleEditPlan = (planId: string) => {
 const handleSubmitPlan = async (payload: any) => {
     try {
         if (modalMode.value === 'CREATE') {
-            // ... 생성 로직 생략
+            try {
+                const requestData: CreatePlanRequest = {
+                    title: payload.title,
+                    startDate: payload.startDate,
+                    endDate: payload.endDate,
+                };
+
+                const response = await createPlan(requestData);
+
+                closeModal();
+
+                // 생성 성공 후 바로 상세 페이지로 이동
+                router.push({
+                    name: 'PlanDetail',
+                    params: { id: response.planId.toString() }
+                });
+
+            } catch (error) {
+                console.error("일정 생성 중 오류 발생:", error);
+            }
         }
         else if (modalMode.value === 'EDIT' && editingPlan.value) {
             // 1. 로컬 데이터 즉시 업데이트 (Optimistic UI)
