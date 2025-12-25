@@ -86,12 +86,16 @@ export const usePlanStore = defineStore("plan", () => {
       }
 
       case "BLOCK_RESIZED": {
-        // 💡 해당 블록만 찾아 시간 정보 업데이트
         const item = findItemInAllDays(data.blockId);
         if (item) {
+          // 1. 값 업데이트
           item.endTime = data.newEndTime.substring(0, 5);
           item.durationTime =
             timeToMinutes(item.endTime) - timeToMinutes(item.startTime);
+
+          // 2. [강력 추천] Vue에게 화면을 당장 그리라고 강제 알림
+          planData.value = { ...planData.value };
+          console.log("소켓: 리사이징 즉시 반영됨");
         }
         break;
       }
@@ -101,7 +105,7 @@ export const usePlanStore = defineStore("plan", () => {
           d.items.some((item) => Number(item.blockId) === Number(data.blockId))
         );
         if (targetDay) {
-          await refreshDayData(targetDay.dayNumber);
+          refreshDayData(targetDay.dayNumber);
         }
         console.log("메모 생성 발생:", data);
         break;
@@ -474,10 +478,10 @@ export const usePlanStore = defineStore("plan", () => {
     if (!planData.value) return;
 
     // 💡 임시 메모인지 확인 (서버 전송 방지)
-    if (String(memoId).startsWith('temp_')) {
-        console.log(`임시 메모 삭제 (로컬): ${memoId}`);
-        removeMemoLocal(dayNumber, blockId, memoId);
-        return;
+    if (String(memoId).startsWith("temp_")) {
+      console.log(`임시 메모 삭제 (로컬): ${memoId}`);
+      removeMemoLocal(dayNumber, blockId, memoId);
+      return;
     }
 
     removeMemoLocal(dayNumber, blockId, memoId);
