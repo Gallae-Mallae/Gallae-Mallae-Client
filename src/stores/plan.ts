@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import type { PlanDTO, ScheduleItemDTO, MemoDTO } from "@/types/plan";
+import type { PlanDTO, MemoDTO } from "@/types/plan";
 import { timeToMinutes, minutesToTimeString } from "@/utils/time";
 import { fetchPlanById, fetchDailySchedules } from "@/api/plan";
 import {
@@ -11,16 +11,14 @@ import {
 } from "@/api/schedule";
 
 import { createMemo, deleteMemo, fetchMemos } from "@/api/memo";
-import type {
-  MemoRequest,
-  CreateMemoResponse,
-  MemoCreatedSocketData,
-  MemoDeletedSocketData,
-} from "@/api/memo";
+import type { MemoRequest } from "@/api/memo";
+
+import { updatePlan, deletePlan } from "@/api/plan";
 
 export const usePlanStore = defineStore("plan", () => {
   const planData = ref<PlanDTO | null>(null);
   const activeMemoId = ref<number | null>(null);
+  const allPlans = ref<PlanDTO[]>([]);
   const isLoading = ref(false);
 
   // 초기 데이터 설정 (PlanTimetable의 onMounted에서 호출)
@@ -84,6 +82,47 @@ export const usePlanStore = defineStore("plan", () => {
         if (targetDay) {
           await refreshDayData(targetDay.dayNumber);
         }
+        break;
+      }
+
+      // 💡 여행 계획 수정 이벤트 처리
+      case "PLAN_UPDATED": {
+        // 현재 보고 있는 플랜이 수정된 경우 데이터 동기화
+        if (Number(planData.value.id) === Number(data.planId)) {
+          planData.value = {
+            ...planData.value,
+            title: data.title,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            planImageUrl: data.planImageUrl,
+          };
+        }
+        // 목록(allPlans)에서도 해당 플랜을 찾아 업데이트
+        const planInList = allPlans.value.find(
+          (p) => Number(p.id) === Number(data.planId)
+        );
+        if (planInList) {
+          planInList.title = data.title;
+          planInList.startDate = data.startDate;
+          planInList.endDate = data.endDate;
+          planInList.planImageUrl = data.planImageUrl;
+        }
+        console.log("여행 계획 수정 발생:", data);
+        break;
+      }
+
+      // 💡 여행 계획 삭제 이벤트 처리
+      case "PLAN_DELETED": {
+        // 현재 보고 있는 플랜이 삭제된 경우 처리 (예: 홈으로 이동은 컴포넌트에서 판단)
+        if (Number(planData.value.id) === Number(data)) {
+          console.log("현재 보고 있는 플랜이 삭제되었습니다.");
+          planData.value = null;
+        }
+        // 목록에서 제거
+        allPlans.value = allPlans.value.filter(
+          (p) => Number(p.id) !== Number(data)
+        );
+        console.log("여행 계획 삭제 발생. 삭제된 ID:", data);
         break;
       }
     }
@@ -451,10 +490,35 @@ export const usePlanStore = defineStore("plan", () => {
     }
   };
 
+  /* 💡 여행 계획 수정 요청 */
+  const requestUpdatePlan = async (
+    planId: number,
+    payload: { title: string; startDate: string; endDate: string }
+  ) => {
+    try {
+      await updatePlan(planId, payload);
+      console.log("플랜 수정 요청 성공");
+    } catch (error) {
+      console.error("플랜 수정 요청 실패", error);
+    }
+  };
+
+  /* 💡 여행 계획 삭제 요청 */
+  const requestDeletePlan = async (planId: number) => {
+    try {
+      await deletePlan(planId);
+      console.log("플랜 삭제 요청 성공");
+    } catch (error) {
+      console.error("플랜 삭제 요청 실패", error);
+    }
+  };
+
   return {
     planData,
     activeMemoId,
+    allPlans,
     isLoading,
+
     loadPlan,
     setPlanData,
     handleSocketEvent,
@@ -474,5 +538,8 @@ export const usePlanStore = defineStore("plan", () => {
     requestAddMemo,
     requestDeleteMemo,
     fetchAndSyncMemos,
+
+    requestUpdatePlan,
+    requestDeletePlan,
   };
 });

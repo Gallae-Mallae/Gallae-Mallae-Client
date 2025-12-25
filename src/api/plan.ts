@@ -101,3 +101,42 @@ export const fetchDailySchedules = async (
   );
   return response.data || [];
 };
+
+/* 일정 수정 */
+export interface UpdatePlanRequest {
+  title: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface PlanUpdatedResponse {
+  planId: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  inviteCode: string;
+  planImageUrl: string | null;
+}
+
+export const updatePlan = async (
+  planId: number,
+  planData: UpdatePlanRequest
+): Promise<PlanUpdatedResponse> => {
+  const response = await http.patch<PlanUpdatedResponse>(
+    `/plans/${planId}`,
+    planData
+  );
+  return response.data;
+};
+
+/* 일정 삭제 */
+export interface PlanDeletedResponse {
+  planId: number; // 삭제된 일정의 ID
+}
+
+export const deletePlan = async (
+  planId: number
+): Promise<PlanDeletedResponse> => {
+  await http.delete<void>(`/plans/${planId}`);
+  return { planId };
+};

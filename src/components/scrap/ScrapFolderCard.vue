@@ -144,14 +144,16 @@ const handleDelete = async () => {
 }
 
 .card-content {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: flex-start;
-    padding: 12px;
-    background-color: rgba(0, 0, 0, 0.05);
+    padding: 20px 12px 12px;
 }
 
 .folder-name {
